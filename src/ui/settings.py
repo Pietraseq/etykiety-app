@@ -11,7 +11,13 @@ import streamlit as st
 
 from src.logic.prompt_template import LANGUAGES
 
-LAYOUT_CHOICES = ["8+7", "5+5+5", "3+3+3+3+3"]
+LAYOUT_CHOICES = ["8+7", "5+5+5", "3+3+3+3+3", "15"]
+LAYOUT_LABELS = {
+    "8+7": "8+7 (2 kolumny, jak D609)",
+    "5+5+5": "5+5+5 (3 kolumny)",
+    "3+3+3+3+3": "3+3+3+3+3 (5 kolumn)",
+    "15": "15 (jedna kolumna, wszystkie pod soba)",
+}
 MARKER_STYLES = ["flag_circle", "text_rect"]
 MARKER_LABELS = {
     "flag_circle": "Flaga w kolku (jak HappSnack)",
@@ -38,8 +44,9 @@ def render_basic_settings(translations: dict[str, str]) -> dict | None:
         layout = st.radio(
             "Layout",
             options=LAYOUT_CHOICES,
+            format_func=lambda x: LAYOUT_LABELS[x],
             index=0,
-            help="8+7 - 2 kolumny jak D609; 5+5+5 - 3 kolumny wezsze; 3+3+3+3+3 - 5 najwezszych",
+            help="8+7 D609; 5+5+5 wezsze; 3+3+3+3+3 najwezsze; 15 jedna kolumna",
             key="layout_choice",
         )
     with col2:

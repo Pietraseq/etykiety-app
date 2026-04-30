@@ -39,6 +39,7 @@ def build_column_split(
     czyli EN PL UK RO DE HU LT SK CZ IT ES GR FR PT RU).
     """
     splits = {
+        "15": [15],
         "8+7": [8, 7],
         "5+5+5": [5, 5, 5],
         "3+3+3+3+3": [3, 3, 3, 3, 3],

@@ -189,7 +189,7 @@ def _render_preview_panel(params: dict) -> None:
     except Exception:
         yaml_bytes = b""
 
-    c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
+    c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         product_code = st.text_input(
             "Kod produktu",
@@ -217,16 +217,6 @@ def _render_preview_panel(params: dict) -> None:
                 mime="text/yaml",
                 use_container_width=True,
             )
-    with c4:
-        svg_b64 = base64.b64encode(svg_bytes).decode("ascii")
-        data_url = f"data:image/svg+xml;base64,{svg_b64}"
-        st.markdown(
-            f'<a href="{data_url}" target="_blank" '
-            f'style="display:inline-block;padding:8px 12px;background:#262730;'
-            f'color:white;text-decoration:none;border-radius:4px;text-align:center;'
-            f'width:100%;box-sizing:border-box;font-size:0.9em;">Pelen ekran</a>',
-            unsafe_allow_html=True,
-        )
 
     # Suwak powiekszenia nad podgladem - 100% = rzeczywista wielkosc mm,
     # 500% = scale 5x. Domyslnie 200% dla widocznosci na typowym ekranie.

@@ -1,4 +1,4 @@
-"""Branding HappyLabel: logo w headerze + tlo day/night zsynchronizowane z theme."""
+"""Branding HappyLabel: logo w headerze + tlo day/night."""
 
 from __future__ import annotations
 
@@ -13,52 +13,76 @@ LOGO_BANNER_DARK = ASSETS / "logo" / "happylabel-banner-dark.png"
 BG_DAY = ASSETS / "backgrounds" / "background-day.webp"
 BG_NIGHT = ASSETS / "backgrounds" / "background-night.webp"
 
-
-def _detect_theme() -> str:
-    """Zwraca 'dark' albo 'light'. Default 'light' gdy nie da sie wykryc."""
-    try:
-        ctx_theme = getattr(st.context, "theme", None)
-        if ctx_theme is not None:
-            value = getattr(ctx_theme, "type", None) or getattr(ctx_theme, "base", None)
-            if isinstance(value, str) and value.lower() in {"dark", "light"}:
-                return value.lower()
-    except Exception:
-        pass
-    base = st.get_option("theme.base")
-    if isinstance(base, str) and base.lower() == "dark":
-        return "dark"
-    return "light"
+THEME_KEY = "ui_theme"
+THEME_DAY = "day"
+THEME_NIGHT = "night"
+THEME_LABELS = {THEME_DAY: "Dzien", THEME_NIGHT: "Noc"}
 
 
 def _b64(path: Path) -> str:
     return base64.b64encode(path.read_bytes()).decode("ascii")
 
 
+def get_theme() -> str:
+    """Aktualny motyw z session_state. Default: dzien."""
+    return st.session_state.get(THEME_KEY, THEME_DAY)
+
+
 def render_header() -> None:
-    """Logo HappyLabel jako naglowek (banner). Wybiera wariant pod theme."""
-    theme = _detect_theme()
-    logo_path = LOGO_BANNER_DARK if theme == "dark" else LOGO_BANNER_LIGHT
-    if not logo_path.exists():
-        st.title("HappyLabel")
-        return
-    col_logo, col_caption = st.columns([1, 2])
+    """Logo HappyLabel jako naglowek (banner) + toggle Dzien/Noc po prawej."""
+    if THEME_KEY not in st.session_state:
+        st.session_state[THEME_KEY] = THEME_DAY
+
+    col_logo, col_caption, col_toggle = st.columns([2, 3, 1])
     with col_logo:
-        st.image(str(logo_path), use_container_width=True)
+        theme = st.session_state[THEME_KEY]
+        # logo "light" = ciemne litery na jasnym tle, logo "dark" = jasne litery na ciemnym tle
+        logo_path = LOGO_BANNER_DARK if theme == THEME_NIGHT else LOGO_BANNER_LIGHT
+        if logo_path.exists():
+            st.image(str(logo_path), use_container_width=True)
+        else:
+            st.title("HappyLabel")
     with col_caption:
         st.caption(
             "Generator wielojezycznych etykiet Happet - tekst -> AI -> SVG. "
             "Maskotka: matwa."
         )
+    with col_toggle:
+        st.radio(
+            "Motyw",
+            options=[THEME_DAY, THEME_NIGHT],
+            format_func=lambda x: THEME_LABELS[x],
+            key=THEME_KEY,
+            horizontal=True,
+            label_visibility="collapsed",
+        )
 
 
 def apply_background() -> None:
-    """Wstawia tlo day/night przez CSS injection. Theme-aware."""
-    theme = _detect_theme()
-    bg_path = BG_NIGHT if theme == "dark" else BG_DAY
+    """Wstawia tlo day/night przez CSS injection - zaleznie od session_state[THEME_KEY]."""
+    theme = get_theme()
+    bg_path = BG_NIGHT if theme == THEME_NIGHT else BG_DAY
     if not bg_path.exists():
         return
     bg = _b64(bg_path)
-    overlay = "rgba(14,17,23,0.78)" if theme == "dark" else "rgba(255,255,255,0.82)"
+    if theme == THEME_NIGHT:
+        overlay = "rgba(14,17,23,0.78)"
+        text_override = ""
+    else:
+        # Mocniejszy overlay dla day, plus wymuszamy ciemny tekst zeby napisy
+        # Streamlita (ktore moga byc jasne gdy theme.base=dark) byly czytelne.
+        overlay = "rgba(255,255,255,0.92)"
+        text_override = """
+        [data-testid="stAppViewContainer"], [data-testid="stAppViewContainer"] * {
+            color: #1f1f1f !important;
+        }
+        [data-testid="stAppViewContainer"] input,
+        [data-testid="stAppViewContainer"] textarea,
+        [data-testid="stAppViewContainer"] select {
+            background-color: rgba(255,255,255,0.85) !important;
+            color: #1f1f1f !important;
+        }
+        """
     st.markdown(
         f"""
         <style>
@@ -70,6 +94,7 @@ def apply_background() -> None:
         [data-testid="stHeader"] {{
             background: transparent;
         }}
+        {text_override}
         </style>
         """,
         unsafe_allow_html=True,
