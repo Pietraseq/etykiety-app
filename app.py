@@ -1,7 +1,8 @@
 """Streamlit entry point dla etykiety-app.
 
-Faza A: Hello World + sanity check importu silnika etykiety-svg (submodule).
-Kolejne fazy doloza UI przez moduly z src/ui/.
+Faza A: scaffold + sanity check importu silnika etykiety-svg.
+Faza B: prompt + parser + UI tlumaczenia (15 textarea).
+Kolejne fazy: settings, auto-tune, preview, download.
 """
 
 from __future__ import annotations
@@ -26,6 +27,8 @@ except ImportError as e:
     SVG_ENGINE_ERROR = str(e)
     DEFAULT_LANG_TO_FLAG = {}
 
+from src.ui.translate import render_translate_section
+
 
 st.set_page_config(
     page_title="etykiety-app",
@@ -34,29 +37,28 @@ st.set_page_config(
 )
 
 st.title("etykiety-app")
-st.caption("Generator wielojezycznych etykiet Happet")
+st.caption("Generator wielojezycznych etykiet Happet - tekst -> AI -> SVG")
 
-if SVG_ENGINE_OK:
-    st.success(f"Silnik etykiety-svg zaladowany. Obsluguje {len(DEFAULT_LANG_TO_FLAG)} jezykow.")
-    with st.expander("Lista obslugiwanych jezykow"):
-        cols = st.columns(5)
-        for i, (lang_code, flag_code) in enumerate(DEFAULT_LANG_TO_FLAG.items()):
-            cols[i % 5].markdown(f"**{lang_code}** -> flaga `{flag_code}`")
-else:
-    st.error(f"Silnik etykiety-svg nie zostal zaladowany: {SVG_ENGINE_ERROR}")
-    st.info(
-        "Sprawdz czy submodule jest zainicjalizowany:\n\n"
-        "```\ngit submodule update --init --recursive\n```"
-    )
+if not SVG_ENGINE_OK:
+    st.error(f"Silnik etykiety-svg nie zaladowany: {SVG_ENGINE_ERROR}")
+    st.code("git submodule update --init --recursive", language="bash")
     st.stop()
 
+# Sekcja: tlumaczenie przez prompt do AI -> 15 textarea
+translations = render_translate_section()
+
+# Faza C/D - settings + preview - placeholder
 st.markdown("---")
-st.subheader("Status MVP")
-st.markdown(
-    "**Faza A** (scaffold + sanity check) - **GOTOWE**\n\n"
-    "Kolejne fazy:\n"
-    "- Faza B: prompt template + parser odpowiedzi AI\n"
-    "- Faza C: settings UI + auto-tune bisekcja font_size\n"
-    "- Faza D: live preview SVG + download\n"
-    "- Faza E: polish + dokumentacja dla grafika"
+st.subheader("5. Ustawienia layoutu (Faza C - WIP)")
+st.info(
+    "Tu beda: layout (8+7 / 5+5+5 / 3+3+3+3+3), styl markera "
+    "(flaga / skrot z kolorem), preferowana liczba wierszy, auto-tune font."
 )
+
+st.subheader("6. Podglad i pobranie SVG (Faza D - WIP)")
+if translations:
+    st.success(f"Stan: {len(translations)} jezykow gotowych do generacji.")
+    with st.expander(f"Debug - sparsowane {len(translations)} jezykow"):
+        st.json(translations)
+else:
+    st.info("Wklej odpowiedz AI w sekcji 3 zeby zobaczyc dane do generacji.")
