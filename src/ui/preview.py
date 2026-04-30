@@ -72,6 +72,7 @@ def _build_config_from_params(params: dict):
         marker_size_mm=params["marker_size_mm"],
         marker_style=params["marker_style"],
         marker_color=params["marker_color"],
+        inter_block_gap_mm=params.get("inter_block_gap_mm"),
     )
 
 
@@ -83,7 +84,13 @@ def render_preview_section(params: dict | None) -> None:
         st.info("Uzupelnij sekcje 1-6 (15 jezykow + ustawienia) zeby aktywowac generacje.")
         return
 
-    col_a, col_b = st.columns([1, 2])
+    if not params.get("is_feasible", True):
+        st.warning(
+            "Etykieta oznaczona jako niemozliwa - mozesz mimo to wygenerowac SVG "
+            "(linie wystaja poza obszar tekstu) zeby zobaczyc co sie dzieje."
+        )
+
+    col_a, col_b, col_c = st.columns([2, 1, 1])
     with col_a:
         product_code = st.text_input(
             "Kod produktu (nazwa pliku)",
@@ -92,9 +99,16 @@ def render_preview_section(params: dict | None) -> None:
             key="product_code",
         )
     with col_b:
+        preview_height = st.select_slider(
+            "Wysokosc podgladu",
+            options=[600, 800, 1000, 1200, 1500, 1800],
+            value=1200,
+            key="preview_height",
+        )
+    with col_c:
         st.caption(
-            "Plik SVG: do Illustratora / CorelDraw. "
-            "Plik YAML: do reuse w etykiety-svg CLI (power user)."
+            "SVG: do Illustratora / Corela. "
+            "YAML: do reuse w etykiety-svg CLI."
         )
 
     try:
@@ -110,8 +124,8 @@ def render_preview_section(params: dict | None) -> None:
         st.warning(f"YAML nie wygenerowany: {e}")
         yaml_bytes = b""
 
-    # Download buttony pierwsze - zeby grafik mogl pobrac od razu
-    col1, col2, col3 = st.columns([1, 1, 1])
+    # Download + open in new tab
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
     col1.download_button(
         "Pobierz SVG",
         data=svg_bytes,
@@ -128,16 +142,26 @@ def render_preview_section(params: dict | None) -> None:
             mime="text/yaml",
             use_container_width=True,
         )
-    col3.metric("Rozmiar SVG", f"{len(svg_bytes) / 1024:.1f} kB")
+    # Open in new tab przez data URL
+    import base64
+    svg_b64 = base64.b64encode(svg_bytes).decode("ascii")
+    data_url = f"data:image/svg+xml;base64,{svg_b64}"
+    col3.markdown(
+        f'<a href="{data_url}" target="_blank" '
+        f'style="display:inline-block;padding:8px 12px;background:#262730;'
+        f'color:white;text-decoration:none;border-radius:4px;text-align:center;'
+        f'width:100%;box-sizing:border-box;">Otworz w nowej karcie</a>',
+        unsafe_allow_html=True,
+    )
+    col4.metric("Rozmiar SVG", f"{len(svg_bytes) / 1024:.1f} kB")
 
-    # Live preview - SVG embedded inline
-    st.markdown("**Podglad SVG (do otwarcia w Illustratorze / CorelDraw):**")
+    # Live preview - SVG embedded inline (white wrapper bo flagi kolorowe a tekst
+    # czarny na ciemnym tle Streamlit byloby nieczytelne)
+    st.markdown(f"**Podglad SVG ({preview_height}px wysokosci, scroll dla wiecej):**")
     svg_string = svg_bytes.decode("utf-8")
-    # Wrapper z białym tlem - flagi sa kolorowe ale tekst czarny, na ciemnym tle
-    # Streamlit moga byc nieczytelne
     html_wrapper = f"""
     <div style="background: white; padding: 20px; border-radius: 8px; max-width: 100%; overflow: auto;">
       {svg_string}
     </div>
     """
-    st.components.v1.html(html_wrapper, height=750, scrolling=True)
+    st.components.v1.html(html_wrapper, height=preview_height, scrolling=True)

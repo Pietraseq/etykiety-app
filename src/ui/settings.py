@@ -1,14 +1,10 @@
 """Streamlit UI - sekcja ustawien layoutu + auto-tune font_size.
 
-Po sparsowaniu tlumaczen grafik wybiera:
-- Layout: 8+7 (default jak D609) / 5+5+5 / 3+3+3+3+3
-- Marker: flaga (default) lub kwadracik z kodem (z color pickerem)
-- Preferowana liczba wierszy (default 4)
-- Zaawansowane: wymiary strony, obszaru tekstu, gutter, marker size
-
-Aplikacja w tle uruchamia bisekcje na font_size i pokazuje:
-- Optymalny font_size [mm]
-- Tabele 'wiersze per jezyk' (ktorzy mieszcza sie a ktorzy wylewaja)
+Pietras chce:
+- preferred_lines od 1 (sama nazwa produktu)
+- 15 wierszy per jezyk w pionie z color-coded statusem (✓ / ⚠️)
+- Banner "etykieta niemozliwa" gdy nawet min font nie pomieści tekstu
+- Uproszczone Zaawansowane: rozmiar etykiety + obszar tekstu + odstep miedzy jezykami
 """
 
 from __future__ import annotations
@@ -57,10 +53,11 @@ def render_settings_section(translations: dict[str, str]) -> dict | None:
     with col3:
         preferred_lines = st.number_input(
             "Preferowana liczba wierszy",
-            min_value=2,
+            min_value=1,
             max_value=10,
             value=4,
-            help="Najdluzszy jezyk nie przekroczy tej liczby. Aplikacja dobierze font_size.",
+            help="Najdluzszy jezyk nie przekroczy tej liczby. Aplikacja dobierze font_size. "
+            "Wartosc 1 = sama nazwa produktu (krotki tekst).",
             key="preferred_lines",
         )
         if marker_style == "text_rect":
@@ -72,26 +69,52 @@ def render_settings_section(translations: dict[str, str]) -> dict | None:
         else:
             marker_color = "#E60000"
 
-    with st.expander("Zaawansowane (wymiary strony, obszaru tekstu)"):
+    with st.expander("Zaawansowane (rozmiar etykiety + obszar tekstu + odstepy)"):
+        st.caption(
+            "Etykieta to fizyczny rozmiar opakowania. Obszar tekstu to czesc "
+            "etykiety zostawiona dla bloków językowych - reszta na ikony, logo, "
+            "kod kreskowy, kod produktu (rysowane przez grafika)."
+        )
         col_a, col_b = st.columns(2)
         with col_a:
-            page_w = st.number_input("Szerokosc strony (mm)", value=219.96, min_value=50.0)
-            text_area_w = st.number_input("Szerokosc obszaru tekstu (mm)", value=100.0, min_value=20.0)
-            gutter = st.number_input("Odstep miedzy kolumnami (mm)", value=3.0, min_value=0.0)
+            st.markdown("**Rozmiar etykiety**")
+            page_w = st.number_input("Szerokosc (mm)", value=219.96, min_value=50.0, key="page_w")
+            page_h = st.number_input("Wysokosc (mm)", value=160.10, min_value=30.0, key="page_h")
         with col_b:
-            page_h = st.number_input("Wysokosc strony (mm)", value=160.10, min_value=30.0)
-            text_area_h = st.number_input("Wysokosc obszaru tekstu (mm)", value=145.0, min_value=20.0)
+            st.markdown("**Obszar dla tekstu**")
+            text_area_w = st.number_input("Szerokosc (mm)", value=100.0, min_value=20.0, key="ta_w")
+            text_area_h = st.number_input("Wysokosc (mm)", value=145.0, min_value=20.0, key="ta_h")
+
+        col_c, col_d, col_e = st.columns(3)
+        with col_c:
+            gutter = st.number_input(
+                "Odstep miedzy kolumnami (mm)",
+                value=3.0,
+                min_value=0.0,
+                step=0.5,
+                key="gutter",
+            )
+        with col_d:
+            inter_gap = st.number_input(
+                "Odstep miedzy jezykami (mm)",
+                value=0.0,
+                min_value=0.0,
+                step=0.2,
+                help="0 = auto z fontu (ciaśniej dla małego, luźniej dla dużego). "
+                "Wartosc > 0 nadpisuje (zageszcza/rozluznia uklad).",
+                key="inter_gap",
+            )
+        with col_e:
             marker_override = st.number_input(
-                "Rozmiar markera (mm) - 0 = auto z fontu",
+                "Rozmiar markera (mm)",
                 value=0.0,
                 min_value=0.0,
                 max_value=10.0,
                 step=0.1,
-                help="Domyslnie marker skaluje sie z font_size (= line_height). "
-                "Wartosc > 0 nadpisuje (clamp do line_height w silniku).",
+                help="0 = auto z fontu (= line_height). >0 = override.",
+                key="marker_override",
             )
 
-    # Auto-tune
     st.subheader("6. Auto-dostrojenie font_size")
 
     config_kwargs = {
@@ -102,9 +125,10 @@ def render_settings_section(translations: dict[str, str]) -> dict | None:
         "marker_size_mm": float(marker_override) if marker_override > 0 else None,
         "marker_style": marker_style,
         "marker_color": marker_color,
+        "inter_block_gap_mm": float(inter_gap) if inter_gap > 0 else None,
     }
 
-    with st.spinner("Bisekcja na font_size (~1-2 sek)..."):
+    with st.spinner("Bisekcja na font_size..."):
         try:
             optimal_font, lines_per_lang = find_optimal_font(
                 translations, int(preferred_lines), **config_kwargs
@@ -115,29 +139,39 @@ def render_settings_section(translations: dict[str, str]) -> dict | None:
 
     max_lines = max(lines_per_lang.values()) if lines_per_lang else 0
 
+    # ETYKIETA NIEMOZLIWA - duzy banner
     if max_lines > preferred_lines:
         st.error(
-            f"Tekst zbyt dlugi - nawet przy foncie {optimal_font:.2f}mm "
-            f"najdluzszy jezyk ma {max_lines} wierszy. "
-            f"Skroc tekst albo zwieksz wysokosc obszaru tekstu."
+            f"### ⚠️ Etykieta niemozliwa do zrobienia\n\n"
+            f"Nawet przy najmniejszym foncie ({optimal_font:.2f} mm) najdluzszy "
+            f"jezyk ma **{max_lines} wierszy** zamiast preferowanych {preferred_lines}. "
+            f"Mozliwe rozwiazania:\n"
+            f"- Skroc tekst zrodlowy (sekcja 1)\n"
+            f"- Zwieksz wysokosc obszaru tekstu (Zaawansowane)\n"
+            f"- Zwieksz preferowana liczbe wierszy\n"
+            f"- Wybierz wezszy layout (np. 5+5+5 zamiast 8+7)"
         )
     else:
         st.success(
             f"Optymalny font: **{optimal_font:.2f} mm** "
-            f"(najdluzszy jezyk ma {max_lines} wierszy z {preferred_lines} preferowanych)"
+            f"(najdluzszy jezyk ma {max_lines} z {preferred_lines} preferowanych wierszy)"
         )
 
-    # Tabela wierszy per jezyk
-    st.markdown("**Wiersze per jezyk:**")
-    cols = st.columns(5)
-    sorted_lines = sorted(lines_per_lang.items(), key=lambda x: -x[1])
-    for i, (code, lines) in enumerate(sorted_lines):
-        col = cols[i % 5]
-        delta = lines - preferred_lines
-        if delta > 0:
-            col.metric(code, str(lines), delta=f"+{delta}", delta_color="inverse")
+    # Lista 15 jezykow w pionie z color-coded statusem
+    st.markdown("**Wiersze per jezyk** (zielony = zgodny z preferowanym; pomaranczowy = wieksze):")
+    for code in LANGUAGES:
+        lines = lines_per_lang.get(code, 0)
+        if lines == preferred_lines or (lines < preferred_lines and lines > 0):
+            # OK - mniej lub rowno
+            icon = "🟢" if lines == preferred_lines else "🟡"
+            st.markdown(
+                f"{icon} **{code}** — {lines} wierszy"
+                + (f" (-{preferred_lines - lines})" if lines < preferred_lines else "")
+            )
+        elif lines > preferred_lines:
+            st.markdown(f"🔴 **{code}** — {lines} wierszy (+{lines - preferred_lines} ponad limit)")
         else:
-            col.metric(code, str(lines))
+            st.markdown(f"⚫ **{code}** — brak danych")
 
     return {
         "translations": translations,
@@ -147,5 +181,6 @@ def render_settings_section(translations: dict[str, str]) -> dict | None:
         "preferred_lines": int(preferred_lines),
         "optimal_font_mm": optimal_font,
         "lines_per_lang": lines_per_lang,
+        "is_feasible": max_lines <= preferred_lines,
         **config_kwargs,
     }

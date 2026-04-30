@@ -74,6 +74,7 @@ def build_temp_config(
     marker_style: str = "flag_circle",
     marker_color: str = "#E60000",
     line_height_multiplier: float = 1.2,
+    inter_block_gap_mm: float | None = None,
     enable_hyphenation: bool = True,
     hyphenation_per_lang: dict[str, bool] | None = None,
 ) -> LabelConfig:
@@ -117,6 +118,7 @@ def build_temp_config(
         ),
         languages=texts,
         column_split=column_split,
+        inter_block_gap_mm=inter_block_gap_mm,
     )
 
 
