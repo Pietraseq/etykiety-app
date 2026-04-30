@@ -116,24 +116,52 @@ def render_combined_section(basic_params: dict | None) -> None:
         _render_preview_panel(full_params)
 
 
+DEFAULTS = {
+    "page_w": 219.96,
+    "page_h": 160.10,
+    "ta_w": 100.0,
+    "ta_h": 145.0,
+    "gutter": 3.0,
+    "inter_gap": 0.0,
+    "marker_override": 0.0,
+}
+
+
+def _reset_defaults() -> None:
+    """Resetuj wartosci dual_inputow do defaultow przez wyczyszczenie session_state."""
+    for key, val in DEFAULTS.items():
+        st.session_state[key] = val
+        if f"{key}__sl" in st.session_state:
+            st.session_state[f"{key}__sl"] = val
+        if f"{key}__ni" in st.session_state:
+            st.session_state[f"{key}__ni"] = val
+
+
 def _render_advanced_inputs() -> dict:
     """Render slider+number inputs w lewej kolumnie."""
+    st.button(
+        "Ustawienia domyslne",
+        use_container_width=True,
+        on_click=_reset_defaults,
+        help="Przywroc wartosci poczatkowe wszystkich parametrow.",
+    )
+
     st.markdown("### Rozmiar etykiety")
-    page_w = dual_input("Szerokosc (mm)", 50.0, 300.0, 219.96, 0.1, "page_w", format="%.2f")
-    page_h = dual_input("Wysokosc (mm)", 30.0, 300.0, 160.10, 0.1, "page_h", format="%.2f")
+    page_w = dual_input("Szerokosc (mm)", 50.0, 300.0, DEFAULTS["page_w"], 0.1, "page_w", format="%.2f")
+    page_h = dual_input("Wysokosc (mm)", 30.0, 300.0, DEFAULTS["page_h"], 0.1, "page_h", format="%.2f")
 
     st.markdown("### Obszar dla tekstu")
-    text_area_w = dual_input("Szerokosc (mm)", 20.0, 300.0, 100.0, 0.1, "ta_w", format="%.2f")
-    text_area_h = dual_input("Wysokosc (mm)", 20.0, 300.0, 145.0, 0.1, "ta_h", format="%.2f")
+    text_area_w = dual_input("Szerokosc (mm)", 20.0, 300.0, DEFAULTS["ta_w"], 0.1, "ta_w", format="%.2f")
+    text_area_h = dual_input("Wysokosc (mm)", 20.0, 300.0, DEFAULTS["ta_h"], 0.1, "ta_h", format="%.2f")
 
     st.markdown("### Odstepy")
-    gutter = dual_input("Miedzy kolumnami (mm)", 0.0, 20.0, 3.0, 0.1, "gutter", format="%.2f")
+    gutter = dual_input("Miedzy kolumnami (mm)", 0.0, 20.0, DEFAULTS["gutter"], 0.1, "gutter", format="%.2f")
     inter_gap = dual_input(
-        "Miedzy jezykami (mm, 0=auto)", 0.0, 10.0, 0.0, 0.1, "inter_gap", format="%.2f",
+        "Miedzy jezykami (mm, 0=auto)", 0.0, 10.0, DEFAULTS["inter_gap"], 0.1, "inter_gap", format="%.2f",
         help_text="0 = auto z fontu",
     )
     marker_override = dual_input(
-        "Marker (mm, 0=auto)", 0.0, 10.0, 0.0, 0.1, "marker_override", format="%.2f",
+        "Marker (mm, 0=auto)", 0.0, 10.0, DEFAULTS["marker_override"], 0.1, "marker_override", format="%.2f",
         help_text="0 = auto = line_height",
     )
 
@@ -200,16 +228,36 @@ def _render_preview_panel(params: dict) -> None:
             unsafe_allow_html=True,
         )
 
-    st.caption(f"Rozmiar pliku: {len(svg_bytes) / 1024:.1f} kB")
+    # Suwak powiekszenia nad podgladem - 100% = rzeczywista wielkosc mm,
+    # 500% = scale 5x. Domyslnie 200% dla widocznosci na typowym ekranie.
+    zoom_col, info_col = st.columns([3, 2])
+    with zoom_col:
+        zoom = st.slider(
+            "Powiekszenie podgladu (100% = rzeczywista wielkosc)",
+            min_value=50,
+            max_value=500,
+            value=200,
+            step=25,
+            format="%d%%",
+            key="preview_zoom",
+        )
+    with info_col:
+        st.caption(
+            f"Rozmiar pliku: {len(svg_bytes) / 1024:.1f} kB | "
+            f"Etykieta: {params['page_size'][0]:.1f} × {params['page_size'][1]:.1f} mm"
+        )
 
-    # SVG do podgladu: width=100% (wypelnia kontener), bez fixed mm
+    # SVG do podgladu: zachowaj fixed mm width/height (zeby zoom 100% byl realnym mm)
     # Plus dorzucamy pomaranczowa ramke strefy roboczej (TYLKO display)
     svg_string = svg_bytes.decode("utf-8")
     svg_for_preview = _prepare_svg_for_preview(svg_string, params)
 
+    scale_factor = zoom / 100
     html_wrapper = f"""
     <div style="background: white; padding: 12px; border-radius: 8px; height: {PREVIEW_HEIGHT_PX}px; overflow: auto;">
-      {svg_for_preview}
+      <div style="transform: scale({scale_factor}); transform-origin: top left; display: inline-block;">
+        {svg_for_preview}
+      </div>
     </div>
     """
     st.components.v1.html(html_wrapper, height=PREVIEW_HEIGHT_PX + 20, scrolling=True)
@@ -239,13 +287,10 @@ def _prepare_svg_for_preview(svg_string: str, params: dict) -> str:
     if "</title>" in svg_string:
         svg_string = svg_string.replace("</title>", f"</title>\n{workspace_rect}", 1)
     else:
-        # fallback: po pierwszym <svg ...>
         svg_string = re.sub(r'(<svg[^>]*>)', r'\1\n' + workspace_rect, svg_string, count=1)
 
-    # Usun fixed width/height (mm), dodaj width="100%" i height="auto"
-    svg_string = re.sub(r'\swidth="[^"]+mm"', ' width="100%"', svg_string, count=1)
-    svg_string = re.sub(r'\sheight="[^"]+mm"', ' style="height:auto;display:block;"', svg_string, count=1)
-
+    # Zachowaj fixed mm width/height - zoom 100% w wrapperze ma sens jako "rzeczywista wielkosc".
+    # Suwak powiekszenia robi transform: scale w wrapperze.
     return svg_string
 
 
