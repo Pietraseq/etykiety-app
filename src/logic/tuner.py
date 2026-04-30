@@ -70,16 +70,23 @@ def build_temp_config(
     text_area_size: tuple[float, float] = (100.0, 145.0),
     text_area_origin: tuple[float, float] = (5.0, 5.0),
     gutter_mm: float = 3.0,
-    marker_size_mm: float = 2.6,
+    marker_size_mm: float | None = None,
     marker_style: str = "flag_circle",
     marker_color: str = "#E60000",
     line_height_multiplier: float = 1.2,
     enable_hyphenation: bool = True,
     hyphenation_per_lang: dict[str, bool] | None = None,
 ) -> LabelConfig:
-    """Zbuduj LabelConfig dla testowej symulacji layoutu (bez zapisu SVG)."""
+    """Zbuduj LabelConfig dla testowej symulacji layoutu (bez zapisu SVG).
+
+    `marker_size_mm=None` (default) -> auto = line_height (font_size * line_height_multiplier).
+    Skaluje marker razem z fontem - zapobiega nachodzeniu na 2. linie przy
+    malym foncie (auto-tune dla wezszych kolumn).
+    """
     column_split = build_column_split(layout_name, languages=texts.keys())
     columns = len(column_split)
+    if marker_size_mm is None:
+        marker_size_mm = font_size_mm * line_height_multiplier
     return LabelConfig(
         product_code="temp",
         page_size=page_size,

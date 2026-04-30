@@ -81,8 +81,14 @@ def render_settings_section(translations: dict[str, str]) -> dict | None:
         with col_b:
             page_h = st.number_input("Wysokosc strony (mm)", value=160.10, min_value=30.0)
             text_area_h = st.number_input("Wysokosc obszaru tekstu (mm)", value=145.0, min_value=20.0)
-            marker_size = st.number_input(
-                "Rozmiar markera (mm)", value=2.6, min_value=1.0, max_value=10.0
+            marker_override = st.number_input(
+                "Rozmiar markera (mm) - 0 = auto z fontu",
+                value=0.0,
+                min_value=0.0,
+                max_value=10.0,
+                step=0.1,
+                help="Domyslnie marker skaluje sie z font_size (= line_height). "
+                "Wartosc > 0 nadpisuje (clamp do line_height w silniku).",
             )
 
     # Auto-tune
@@ -93,7 +99,7 @@ def render_settings_section(translations: dict[str, str]) -> dict | None:
         "page_size": (float(page_w), float(page_h)),
         "text_area_size": (float(text_area_w), float(text_area_h)),
         "gutter_mm": float(gutter),
-        "marker_size_mm": float(marker_size),
+        "marker_size_mm": float(marker_override) if marker_override > 0 else None,
         "marker_style": marker_style,
         "marker_color": marker_color,
     }
