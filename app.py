@@ -28,8 +28,8 @@ except ImportError as e:
     DEFAULT_LANG_TO_FLAG = {}
 
 from src.ui.translate import render_translate_section
-from src.ui.settings import render_settings_section
-from src.ui.preview import render_preview_section
+from src.ui.settings import render_basic_settings
+from src.ui.preview import render_combined_section
 
 
 st.set_page_config(
@@ -46,13 +46,13 @@ if not SVG_ENGINE_OK:
     st.code("git submodule update --init --recursive", language="bash")
     st.stop()
 
-# Sekcja: tlumaczenie przez prompt do AI -> 15 textarea
+# Sekcje 1-3: tlumaczenie przez prompt do AI -> 15 textarea
 translations = render_translate_section()
 
-# Sekcja: ustawienia + auto-tune
+# Sekcja 5: BASIC settings (layout, marker, preferred_lines)
 st.markdown("---")
-generation_params = render_settings_section(translations)
+basic_params = render_basic_settings(translations)
 
-# Sekcja: live preview SVG + download buttons
+# Sekcja 6: zaawansowane + live preview side-by-side
 st.markdown("---")
-render_preview_section(generation_params)
+render_combined_section(basic_params)
