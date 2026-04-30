@@ -29,6 +29,7 @@ except ImportError as e:
 
 from src.ui.translate import render_translate_section
 from src.ui.settings import render_settings_section
+from src.ui.preview import render_preview_section
 
 
 st.set_page_config(
@@ -52,17 +53,6 @@ translations = render_translate_section()
 st.markdown("---")
 generation_params = render_settings_section(translations)
 
-# Faza D - preview + download - placeholder
+# Sekcja: live preview SVG + download buttons
 st.markdown("---")
-st.subheader("7. Podglad i pobranie SVG (Faza D - WIP)")
-if generation_params:
-    st.info(
-        "Tu bedzie: live preview SVG + przycisk download. "
-        "Aktualnie gotowe parametry generacji (debug)."
-    )
-    with st.expander("Debug - parametry generacji"):
-        # Pomijamy translations w widoku zeby nie zaspamowac
-        params_view = {k: v for k, v in generation_params.items() if k != "translations"}
-        st.json(params_view)
-else:
-    st.info("Uzupelnij sekcje 1-3 (15 jezykow) zeby aktywowac generacje.")
+render_preview_section(generation_params)
