@@ -1,0 +1,11 @@
+streamlit>=1.40
+pyperclip>=1.9
+
+# Re-export z etykiety-svg (silnik) - musza byc te same wersje
+fonttools>=4.50
+lxml>=5.0
+pyphen>=0.15
+pyyaml>=6.0
+pdfplumber>=0.11
+pydantic>=2.0
+pytest>=8.0
