@@ -1,10 +1,7 @@
-"""Streamlit UI - kombinowana sekcja: zaawansowane ustawienia + auto-tune + live preview.
+"""Streamlit UI - kombinowana sekcja: zaawansowane + auto-tune + live preview.
 
-Layout: st.columns([2, 3]) - po lewej zaawansowane (page_size, text_area,
-gutter, inter_block_gap, marker_override), po prawej duzy live preview SVG.
-Auto-tune w tle - bisekcja na font_size po kazdej zmianie inputu.
-
-Pietras moze klikac slidery / inputy po lewej i widziec efekt po prawej.
+Layout: st.columns([1, 3]) - po lewej zaawansowane (slider+input), po prawej
+duzy preview SVG z obramowka strefy roboczej. SVG width=100% wypelnia kolumne.
 """
 
 from __future__ import annotations
@@ -21,15 +18,18 @@ import yaml
 from label_generator.layout import layout_page
 from label_generator.svg_writer import write_svg
 
-from src.logic.prompt_template import LANGUAGES
 from src.logic.tuner import build_temp_config, find_optimal_font
+
+from src.ui.widgets import dual_input
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2] / "etykiety_svg"
 
-# Powiekszenie SVG w preview - 220mm SVG przy 1mm=3.78px wynosi ~830px,
-# scale 2.5 daje ~2080px -> sporo przestrzeni dla detali, scrolluje sie.
-PREVIEW_SCALE = 2.5
 PREVIEW_HEIGHT_PX = 1500
+WORKSPACE_OUTLINE_COLOR = "#FF6B35"  # pomaranczowy - tylko poglad strefy roboczej
+
+# Default origin obszaru tekstu (powinno zgadzac sie z build_temp_config)
+TEXT_AREA_X = 5.0
+TEXT_AREA_Y = 5.0
 
 
 def render_combined_section(basic_params: dict | None) -> None:
@@ -39,15 +39,16 @@ def render_combined_section(basic_params: dict | None) -> None:
 
     st.subheader("6. Modelowanie i podglad")
     st.caption(
-        "Zmieniaj parametry po lewej - podglad po prawej aktualizuje sie automatycznie."
+        "Zmieniaj parametry po lewej (suwak lub liczba) - podglad po prawej "
+        "aktualizuje sie automatycznie. Pomaranczowa ramka pokazuje strefe robocza "
+        "(obszar tekstu) - to tylko podglad, NIE jest zapisana w pliku SVG."
     )
 
-    col_left, col_right = st.columns([2, 3])
+    col_left, col_right = st.columns([1, 3])
 
     with col_left:
         advanced = _render_advanced_inputs()
 
-    # Pelna konfiguracja
     config_kwargs = {
         "layout_name": basic_params["layout"],
         "page_size": (advanced["page_w"], advanced["page_h"]),
@@ -59,7 +60,6 @@ def render_combined_section(basic_params: dict | None) -> None:
         "inter_block_gap_mm": advanced["inter_gap"] if advanced["inter_gap"] > 0 else None,
     }
 
-    # Auto-tune
     try:
         with col_left:
             with st.spinner("Bisekcja..."):
@@ -76,29 +76,26 @@ def render_combined_section(basic_params: dict | None) -> None:
     min_lines = min(lines_per_lang.values()) if lines_per_lang else 0
     is_feasible = max_lines <= basic_params["preferred_lines"]
 
-    # Status auto-tune w lewej kolumnie - 1 linia
     with col_left:
         if not is_feasible:
             st.error(
                 f"### Etykieta niemozliwa\n\n"
-                f"Najdluzszy jezyk ma **{max_lines}** wierszy zamiast preferowanych "
-                f"**{basic_params['preferred_lines']}**, nawet przy foncie {optimal_font:.2f}mm.\n\n"
-                f"Mozliwe rozwiazania:\n"
-                f"- Skroc tekst zrodlowy (sekcja 1)\n"
+                f"Najdluzszy jezyk: **{max_lines}** wierszy zamiast preferowanych "
+                f"**{basic_params['preferred_lines']}** (font {optimal_font:.2f}mm).\n\n"
+                f"Mozliwosci:\n"
+                f"- Skroc tekst zrodlowy\n"
                 f"- Zwieksz wysokosc obszaru tekstu\n"
                 f"- Zwieksz preferowana liczbe wierszy\n"
-                f"- Wybierz wezszy layout (np. 5+5+5)"
+                f"- Wybierz wezszy layout"
             )
         else:
             st.success(f"Optymalny font: **{optimal_font:.2f} mm**")
 
-        # Wiersze per jezyk - 1 linia summary (Pietras: "informacyjnie ze wszystkie razem")
         if min_lines == max_lines:
             st.markdown(f"**Wszystkie 15 jezykow: {min_lines} wierszy**")
         else:
             st.markdown(f"**Wszystkie 15 jezykow: {min_lines}-{max_lines} wierszy**")
 
-        # Lista jezykow ktore wystaja (tylko gdy niefeasible)
         if not is_feasible:
             overflow_langs = [
                 f"{code} ({n})" for code, n in lines_per_lang.items()
@@ -107,7 +104,6 @@ def render_combined_section(basic_params: dict | None) -> None:
             if overflow_langs:
                 st.markdown(f"**Wystaja:** {', '.join(overflow_langs)}")
 
-    # Generacja SVG + preview po prawej
     full_params = {
         **basic_params,
         **config_kwargs,
@@ -121,44 +117,34 @@ def render_combined_section(basic_params: dict | None) -> None:
 
 
 def _render_advanced_inputs() -> dict:
-    """Render inputow zaawansowanych w lewej kolumnie. Compact layout."""
-    st.markdown("**Rozmiar etykiety (mm)**")
-    a, b = st.columns(2)
-    page_w = a.number_input("Szer.", value=219.96, min_value=50.0, key="page_w", label_visibility="visible")
-    page_h = b.number_input("Wys.", value=160.10, min_value=30.0, key="page_h", label_visibility="visible")
+    """Render slider+number inputs w lewej kolumnie."""
+    st.markdown("### Rozmiar etykiety")
+    page_w = dual_input("Szerokosc (mm)", 50.0, 300.0, 219.96, 0.1, "page_w", format="%.2f")
+    page_h = dual_input("Wysokosc (mm)", 30.0, 300.0, 160.10, 0.1, "page_h", format="%.2f")
 
-    st.markdown("**Obszar dla tekstu (mm)**")
-    a, b = st.columns(2)
-    text_area_w = a.number_input("Szer. ", value=100.0, min_value=20.0, key="ta_w")
-    text_area_h = b.number_input("Wys. ", value=145.0, min_value=20.0, key="ta_h")
+    st.markdown("### Obszar dla tekstu")
+    text_area_w = dual_input("Szerokosc (mm)", 20.0, 300.0, 100.0, 0.1, "ta_w", format="%.2f")
+    text_area_h = dual_input("Wysokosc (mm)", 20.0, 300.0, 145.0, 0.1, "ta_h", format="%.2f")
 
-    st.markdown("**Odstepy (mm)**")
-    gutter = st.number_input(
-        "Miedzy kolumnami",
-        value=3.0, min_value=0.0, step=0.5,
-        key="gutter",
+    st.markdown("### Odstepy")
+    gutter = dual_input("Miedzy kolumnami (mm)", 0.0, 20.0, 3.0, 0.1, "gutter", format="%.2f")
+    inter_gap = dual_input(
+        "Miedzy jezykami (mm, 0=auto)", 0.0, 10.0, 0.0, 0.1, "inter_gap", format="%.2f",
+        help_text="0 = auto z fontu",
     )
-    inter_gap = st.number_input(
-        "Miedzy jezykami (0 = auto)",
-        value=0.0, min_value=0.0, step=0.2,
-        key="inter_gap",
-        help="0 = auto z fontu. Wyzsza wartosc rozsuwa bloki jezykowe.",
-    )
-    marker_override = st.number_input(
-        "Marker (0 = auto)",
-        value=0.0, min_value=0.0, max_value=10.0, step=0.1,
-        key="marker_override",
-        help="0 = auto = line_height. >0 = override (clamped do line_height w silniku).",
+    marker_override = dual_input(
+        "Marker (mm, 0=auto)", 0.0, 10.0, 0.0, 0.1, "marker_override", format="%.2f",
+        help_text="0 = auto = line_height",
     )
 
     return {
-        "page_w": float(page_w),
-        "page_h": float(page_h),
-        "text_area_w": float(text_area_w),
-        "text_area_h": float(text_area_h),
-        "gutter": float(gutter),
-        "inter_gap": float(inter_gap),
-        "marker_override": float(marker_override),
+        "page_w": page_w,
+        "page_h": page_h,
+        "text_area_w": text_area_w,
+        "text_area_h": text_area_h,
+        "gutter": gutter,
+        "inter_gap": inter_gap,
+        "marker_override": marker_override,
     }
 
 
@@ -175,7 +161,6 @@ def _render_preview_panel(params: dict) -> None:
     except Exception:
         yaml_bytes = b""
 
-    # Toolbar: kod produktu + download buttons
     c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
     with c1:
         product_code = st.text_input(
@@ -215,22 +200,53 @@ def _render_preview_panel(params: dict) -> None:
             unsafe_allow_html=True,
         )
 
-    st.caption(f"Rozmiar: {len(svg_bytes) / 1024:.1f} kB | scale {PREVIEW_SCALE}x ({PREVIEW_HEIGHT_PX}px wys.)")
+    st.caption(f"Rozmiar pliku: {len(svg_bytes) / 1024:.1f} kB")
 
-    # Powiekszony SVG - usuwam fixed width/height z root SVG, scale 2.5x
+    # SVG do podgladu: width=100% (wypelnia kontener), bez fixed mm
+    # Plus dorzucamy pomaranczowa ramke strefy roboczej (TYLKO display)
     svg_string = svg_bytes.decode("utf-8")
-    # Remove width/height attrs z root svg (zostawiam viewBox)
-    svg_for_preview = re.sub(r'\swidth="[^"]+mm"', "", svg_string, count=1)
-    svg_for_preview = re.sub(r'\sheight="[^"]+mm"', "", svg_for_preview, count=1)
+    svg_for_preview = _prepare_svg_for_preview(svg_string, params)
 
     html_wrapper = f"""
-    <div style="background: white; padding: 10px; border-radius: 8px; overflow: auto; height: {PREVIEW_HEIGHT_PX}px;">
-      <div style="transform: scale({PREVIEW_SCALE}); transform-origin: top left; width: {100/PREVIEW_SCALE}%;">
-        {svg_for_preview}
-      </div>
+    <div style="background: white; padding: 12px; border-radius: 8px; height: {PREVIEW_HEIGHT_PX}px; overflow: auto;">
+      {svg_for_preview}
     </div>
     """
     st.components.v1.html(html_wrapper, height=PREVIEW_HEIGHT_PX + 20, scrolling=True)
+
+
+def _prepare_svg_for_preview(svg_string: str, params: dict) -> str:
+    """Zmodyfikuj SVG do podgladu w przegladarce.
+
+    1. Usun fixed mm width/height z root <svg> + dodaj width="100%"
+    2. Dodaj <rect> obramowanie strefy roboczej (text_area) - TYLKO display
+    """
+    text_area_w, text_area_h = params["text_area_size"]
+    page_w, _ = params["page_size"]
+
+    # Stroke width w mm, proporcjonalny do szerokosci strony (~0.1% szer.)
+    stroke_w = max(0.15, page_w * 0.001)
+
+    workspace_rect = (
+        f'<rect x="{TEXT_AREA_X}" y="{TEXT_AREA_Y}" '
+        f'width="{text_area_w}" height="{text_area_h}" '
+        f'fill="none" stroke="{WORKSPACE_OUTLINE_COLOR}" '
+        f'stroke-width="{stroke_w}" stroke-dasharray="1,0.6" '
+        f'opacity="0.7"/>'
+    )
+
+    # Wstrzyknij rect po </title>
+    if "</title>" in svg_string:
+        svg_string = svg_string.replace("</title>", f"</title>\n{workspace_rect}", 1)
+    else:
+        # fallback: po pierwszym <svg ...>
+        svg_string = re.sub(r'(<svg[^>]*>)', r'\1\n' + workspace_rect, svg_string, count=1)
+
+    # Usun fixed width/height (mm), dodaj width="100%" i height="auto"
+    svg_string = re.sub(r'\swidth="[^"]+mm"', ' width="100%"', svg_string, count=1)
+    svg_string = re.sub(r'\sheight="[^"]+mm"', ' style="height:auto;display:block;"', svg_string, count=1)
+
+    return svg_string
 
 
 def generate_svg_bytes(params: dict) -> bytes:
