@@ -30,16 +30,17 @@ except ImportError as e:
 from src.ui.translate import render_translate_section
 from src.ui.settings import render_basic_settings
 from src.ui.preview import render_combined_section
+from src.ui.branding import apply_background, render_header
 
 
 st.set_page_config(
-    page_title="etykiety-app",
-    page_icon=":label:",
+    page_title="HappyLabel",
+    page_icon=str((Path(__file__).parent / "assets" / "logo" / "happylabel-square-light.png").resolve()),
     layout="wide",
 )
 
-st.title("etykiety-app")
-st.caption("Generator wielojezycznych etykiet Happet - tekst -> AI -> SVG")
+apply_background()
+render_header()
 
 if not SVG_ENGINE_OK:
     st.error(f"Silnik etykiety-svg nie zaladowany: {SVG_ENGINE_ERROR}")
