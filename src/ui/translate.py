@@ -22,37 +22,78 @@ except ImportError:
     PYPERCLIP_OK = False
 
 from src.logic.parser import parse_translations, validate_translations
-from src.logic.prompt_template import LANGUAGES, LANGUAGE_NAMES, build_prompt
+from src.logic.prompt_template import (
+    LANGUAGES,
+    LANGUAGE_NAMES,
+    build_format_prompt,
+    build_prompt,
+)
+
+MODE_TRANSLATE = "Przetlumacz z PL/EN"
+MODE_FORMAT = "Mam juz 15 tlumaczen, sformatuj"
 
 
 def render_translate_section() -> dict[str, str]:
     """Render sekcji tlumaczenia. Zwraca {lang_code: text} po edycji."""
 
-    # Sekcja 1: tekst zrodlowy + jezyk
-    st.subheader("1. Tekst zrodlowy")
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        source_text = st.text_area(
-            "Wpisz tekst do przetlumaczenia",
-            placeholder="Np. 'Single-use, oxygen-activated heat pack. For transporting animals...'",
-            height=100,
-            key="source_text",
+    # Sekcja 0: wybor trybu
+    mode = st.radio(
+        "Tryb pracy",
+        options=[MODE_TRANSLATE, MODE_FORMAT],
+        key="translate_mode",
+        horizontal=True,
+        help=(
+            "Tryb 1: wpisujesz 1 tekst, AI tlumaczy na 15 jezykow. "
+            "Tryb 2: masz juz 15 tlumaczen (od kontrahenta, z Excela...), "
+            "AI tylko normalizuje format `KOD === tekst`."
+        ),
+    )
+
+    prompt: str | None = None
+
+    if mode == MODE_TRANSLATE:
+        # Sekcja 1: tekst zrodlowy + jezyk
+        st.subheader("1. Tekst zrodlowy")
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            source_text = st.text_area(
+                "Wpisz tekst do przetlumaczenia",
+                placeholder="Np. 'Single-use, oxygen-activated heat pack. For transporting animals...'",
+                height=100,
+                key="source_text",
+                label_visibility="collapsed",
+            )
+        with col2:
+            source_lang = st.selectbox(
+                "Jezyk zrodlowy",
+                options=["EN", "PL"],
+                index=0,
+                key="source_lang",
+            )
+        if source_text.strip():
+            prompt = build_prompt(source_text, source_lang)
+    else:
+        # Sekcja 1 (format): wszystkie 15 tlumaczen w jednym polu
+        st.subheader("1. Wklej 15 tlumaczen")
+        st.caption(
+            "Dowolny format - lista, CSV, Excel paste, plain text z nagolowkami "
+            "(np. 'Polski: ...', 'English: ...'). AI dopasuje kody jezykow i sformatuje."
+        )
+        raw_translations = st.text_area(
+            "Wklej tlumaczenia w jakimkolwiek formacie",
+            placeholder="Polski: Jednorazowy ogrzewacz...\nEnglish: Single-use heat pack...\n...",
+            height=200,
+            key="raw_translations",
             label_visibility="collapsed",
         )
-    with col2:
-        source_lang = st.selectbox(
-            "Jezyk zrodlowy",
-            options=["EN", "PL"],
-            index=0,
-            key="source_lang",
-        )
+        if raw_translations.strip():
+            prompt = build_format_prompt(raw_translations)
 
     # Sekcja 2: prompt do AI
     st.subheader("2. Skopiuj prompt do AI")
-    if not source_text.strip():
+    if prompt is None:
         st.info("Wpisz tekst powyzej, zeby wygenerowac prompt.")
     else:
-        prompt = build_prompt(source_text, source_lang)
         with st.expander("Podglad promptu (15 jezykow + zasady formatowania)", expanded=False):
             st.code(prompt, language="markdown")
 

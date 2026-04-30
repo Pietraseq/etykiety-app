@@ -175,3 +175,29 @@ def test_prompt_invalid_source_lang_raises():
     from src.logic.prompt_template import build_prompt
     with pytest.raises(ValueError):
         build_prompt("Test", source_lang="ZZ")
+
+
+def test_format_prompt_includes_raw_text():
+    from src.logic.prompt_template import build_format_prompt
+    raw = "Polski: Witaj swiecie\nEnglish: Hello world"
+    prompt = build_format_prompt(raw)
+    assert "Witaj swiecie" in prompt
+    assert "Hello world" in prompt
+    assert "DO NOT translate" in prompt
+
+
+def test_format_prompt_lists_all_15_codes():
+    from src.logic.prompt_template import build_format_prompt
+    prompt = build_format_prompt("anything")
+    for code in LANGUAGES:
+        assert code in prompt
+
+
+def test_format_prompt_strips_whitespace():
+    from src.logic.prompt_template import build_format_prompt
+    raw = "\n\n  PL: Witaj\n  EN: Hello  \n\n"
+    prompt = build_format_prompt(raw)
+    assert "PL: Witaj" in prompt
+    assert "EN: Hello" in prompt
+    # Nie powinno byc 4 wiodacych \n
+    assert "\n\n  PL" not in prompt

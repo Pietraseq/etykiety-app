@@ -38,6 +38,38 @@ LANGUAGE_NAMES: dict[str, str] = {
 }
 
 
+def build_format_prompt(raw_translations: str) -> str:
+    """Zbuduj prompt do AI, ktory normalizuje gotowe tlumaczenia do formatu `KOD === tekst`.
+
+    Tryb dla grafika ktory ma juz 15 tlumaczen (od kontrahenta, z poprzedniej etykiety,
+    z Excela/Worda) i potrzebuje tylko sformatowania - nie tlumaczenia.
+    """
+    blocks = "\n".join(
+        f"{code} === <{LANGUAGE_NAMES[code]} text>" for code in LANGUAGES
+    )
+
+    return f"""Format the following translations into the standard output format. The translations are already done - your job is ONLY to normalize formatting and assign correct language codes.
+
+OUTPUT FORMAT - one block per language, separator " === ":
+
+{blocks}
+
+RULES:
+- Use the language code prefix exactly as shown (EN, PL, UK, RO, DE, HU, LT, SK, CZ, IT, ES, GR, FR, PT, RU)
+- UK = Ukrainian (NOT British English)
+- Plain text only - no markdown, no asterisks (**), no bullet points (-, *), no quotation marks around translations
+- One translation per line; if input is multi-line, merge into single line
+- DO NOT translate, paraphrase or "improve" the content - just normalize the format
+- If a language is missing in the input, output `KOD === ???` to mark the gap
+- If you cannot identify which language is which, make your best guess based on text content (e.g. cyrillic = UK or RU, greek alphabet = GR)
+
+Input translations (already done, just normalize the format):
+\"\"\"
+{raw_translations.strip()}
+\"\"\"
+"""
+
+
 def build_prompt(source_text: str, source_lang: str = "EN") -> str:
     """Zbuduj prompt do AI z tekstem zrodlowym i lista 15 jezykow docelowych.
 

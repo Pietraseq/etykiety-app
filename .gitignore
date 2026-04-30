@@ -10,3 +10,5 @@ output/
 .DS_Store
 Thumbs.db
 .streamlit/secrets.toml
+_brand-ref/
+_codex-brief.md
