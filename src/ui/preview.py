@@ -25,7 +25,9 @@ from src.ui.widgets import dual_input
 PROJECT_ROOT = Path(__file__).resolve().parents[2] / "etykiety_svg"
 
 PREVIEW_HEIGHT_PX = 1500
-WORKSPACE_OUTLINE_COLOR = "#FF6B35"  # pomaranczowy - tylko poglad strefy roboczej
+WORKSPACE_OUTLINE_COLOR_OK = "#FF6B35"  # pomaranczowy - text area, jest OK
+WORKSPACE_OUTLINE_COLOR_OVERFLOW = "#FF1744"  # czerwony - tekst wystaje poza
+PAGE_OUTLINE_COLOR = "#A0A0A0"  # szary - granica calej etykiety
 
 # Default origin obszaru tekstu (powinno zgadzac sie z build_temp_config)
 TEXT_AREA_X = 5.0
@@ -256,31 +258,54 @@ def _render_preview_panel(params: dict) -> None:
 def _prepare_svg_for_preview(svg_string: str, params: dict) -> str:
     """Zmodyfikuj SVG do podgladu w przegladarce.
 
-    1. Usun fixed mm width/height z root <svg> + dodaj width="100%"
-    2. Dodaj <rect> obramowanie strefy roboczej (text_area) - TYLKO display
+    1. Outer rect (granica etykiety, page_size) - zawsze widoczna, szara cienka
+    2. Inner rect (strefa robocza, text_area) - kolor zalezny od overflow:
+       pomaranczowy gdy tekst sie miesci, czerwony gdy wystaje
+    3. overflow="visible" na root <svg> + style - tekst poza viewbox jest widoczny
+       (NIE jest obcinany), zeby grafik widzial co wystaje
     """
     text_area_w, text_area_h = params["text_area_size"]
-    page_w, _ = params["page_size"]
+    page_w, page_h = params["page_size"]
+    is_feasible = params.get("is_feasible", True)
 
     # Stroke width w mm, proporcjonalny do szerokosci strony (~0.1% szer.)
     stroke_w = max(0.15, page_w * 0.001)
 
+    inner_color = WORKSPACE_OUTLINE_COLOR_OK if is_feasible else WORKSPACE_OUTLINE_COLOR_OVERFLOW
+    inner_dash = "1,0.6" if is_feasible else "2,1"
+
+    page_rect = (
+        f'<rect x="0" y="0" '
+        f'width="{page_w}" height="{page_h}" '
+        f'fill="none" stroke="{PAGE_OUTLINE_COLOR}" '
+        f'stroke-width="{stroke_w * 0.7}" '
+        f'opacity="0.6"/>'
+    )
     workspace_rect = (
         f'<rect x="{TEXT_AREA_X}" y="{TEXT_AREA_Y}" '
         f'width="{text_area_w}" height="{text_area_h}" '
-        f'fill="none" stroke="{WORKSPACE_OUTLINE_COLOR}" '
-        f'stroke-width="{stroke_w}" stroke-dasharray="1,0.6" '
-        f'opacity="0.7"/>'
+        f'fill="none" stroke="{inner_color}" '
+        f'stroke-width="{stroke_w}" stroke-dasharray="{inner_dash}" '
+        f'opacity="0.85"/>'
     )
 
-    # Wstrzyknij rect po </title>
-    if "</title>" in svg_string:
-        svg_string = svg_string.replace("</title>", f"</title>\n{workspace_rect}", 1)
-    else:
-        svg_string = re.sub(r'(<svg[^>]*>)', r'\1\n' + workspace_rect, svg_string, count=1)
+    inject = f"{page_rect}\n{workspace_rect}"
 
-    # Zachowaj fixed mm width/height - zoom 100% w wrapperze ma sens jako "rzeczywista wielkosc".
-    # Suwak powiekszenia robi transform: scale w wrapperze.
+    # Wstrzyknij rects po </title>
+    if "</title>" in svg_string:
+        svg_string = svg_string.replace("</title>", f"</title>\n{inject}", 1)
+    else:
+        svg_string = re.sub(r'(<svg[^>]*>)', r'\1\n' + inject, svg_string, count=1)
+
+    # overflow="visible" na root <svg> - tekst poza page_size NIE jest obcinany,
+    # grafik widzi co dokladnie wystaje i moze poprawic settings.
+    svg_string = re.sub(
+        r'<svg(?![^>]*\soverflow=)([^>]*)>',
+        r'<svg\1 overflow="visible">',
+        svg_string,
+        count=1,
+    )
+
     return svg_string
 
 

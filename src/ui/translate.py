@@ -63,6 +63,7 @@ def render_translate_section() -> dict[str, str]:
                 key="source_text",
                 label_visibility="collapsed",
             )
+            st.button("Zatwierdz tekst", key="submit_source", help="Lub Ctrl+Enter w polu wyzej")
         with col2:
             source_lang = st.selectbox(
                 "Jezyk zrodlowy",
@@ -86,6 +87,7 @@ def render_translate_section() -> dict[str, str]:
             key="raw_translations",
             label_visibility="collapsed",
         )
+        st.button("Zatwierdz tlumaczenia", key="submit_raw", help="Lub Ctrl+Enter w polu wyzej")
         if raw_translations.strip():
             prompt = build_format_prompt(raw_translations)
 
@@ -123,6 +125,7 @@ def render_translate_section() -> dict[str, str]:
         key="ai_response",
         label_visibility="collapsed",
     )
+    st.button("Zatwierdz odpowiedz AI", key="submit_response", help="Lub Ctrl+Enter w polu wyzej")
 
     if not ai_response.strip():
         return {}

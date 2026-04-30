@@ -1,4 +1,4 @@
-"""Branding HappyLabel: logo w headerze + tlo day/night."""
+"""Branding HappyLabel: logo w headerze + tlo nocne + footer 'by Pietras'."""
 
 from __future__ import annotations
 
@@ -8,81 +8,31 @@ from pathlib import Path
 import streamlit as st
 
 ASSETS = Path(__file__).resolve().parents[2] / "assets"
-LOGO_BANNER_LIGHT = ASSETS / "logo" / "happylabel-banner-light.png"
 LOGO_BANNER_DARK = ASSETS / "logo" / "happylabel-banner-dark.png"
-BG_DAY = ASSETS / "backgrounds" / "background-day.webp"
 BG_NIGHT = ASSETS / "backgrounds" / "background-night.webp"
-
-THEME_KEY = "ui_theme"
-THEME_DAY = "day"
-THEME_NIGHT = "night"
-THEME_LABELS = {THEME_DAY: "Dzien", THEME_NIGHT: "Noc"}
+BY_PIETRAS_DARK = ASSETS / "branding" / "by-pietras-dark.png"
 
 
 def _b64(path: Path) -> str:
     return base64.b64encode(path.read_bytes()).decode("ascii")
 
 
-def get_theme() -> str:
-    """Aktualny motyw z session_state. Default: dzien."""
-    return st.session_state.get(THEME_KEY, THEME_DAY)
-
-
 def render_header() -> None:
-    """Logo HappyLabel jako naglowek (banner) + toggle Dzien/Noc po prawej."""
-    if THEME_KEY not in st.session_state:
-        st.session_state[THEME_KEY] = THEME_DAY
-
-    col_logo, col_caption, col_toggle = st.columns([2, 3, 1])
-    with col_logo:
-        theme = st.session_state[THEME_KEY]
-        # logo "light" = ciemne litery na jasnym tle, logo "dark" = jasne litery na ciemnym tle
-        logo_path = LOGO_BANNER_DARK if theme == THEME_NIGHT else LOGO_BANNER_LIGHT
-        if logo_path.exists():
-            st.image(str(logo_path), use_container_width=True)
-        else:
-            st.title("HappyLabel")
-    with col_caption:
-        st.caption(
-            "Generator wielojezycznych etykiet Happet - tekst -> AI -> SVG. "
-            "Maskotka: matwa."
-        )
-    with col_toggle:
-        st.radio(
-            "Motyw",
-            options=[THEME_DAY, THEME_NIGHT],
-            format_func=lambda x: THEME_LABELS[x],
-            key=THEME_KEY,
-            horizontal=True,
-            label_visibility="collapsed",
-        )
+    """Logo HappyLabel jako naglowek (banner). Tylko tryb nocny - jasny logo."""
+    if LOGO_BANNER_DARK.exists():
+        col_logo, _ = st.columns([2, 4])
+        with col_logo:
+            st.image(str(LOGO_BANNER_DARK), use_container_width=True)
+    else:
+        st.title("HappyLabel")
 
 
 def apply_background() -> None:
-    """Wstawia tlo day/night przez CSS injection - zaleznie od session_state[THEME_KEY]."""
-    theme = get_theme()
-    bg_path = BG_NIGHT if theme == THEME_NIGHT else BG_DAY
-    if not bg_path.exists():
+    """Wstawia tlo nocne przez CSS injection."""
+    if not BG_NIGHT.exists():
         return
-    bg = _b64(bg_path)
-    if theme == THEME_NIGHT:
-        overlay = "rgba(14,17,23,0.78)"
-        text_override = ""
-    else:
-        # Mocniejszy overlay dla day, plus wymuszamy ciemny tekst zeby napisy
-        # Streamlita (ktore moga byc jasne gdy theme.base=dark) byly czytelne.
-        overlay = "rgba(255,255,255,0.92)"
-        text_override = """
-        [data-testid="stAppViewContainer"], [data-testid="stAppViewContainer"] * {
-            color: #1f1f1f !important;
-        }
-        [data-testid="stAppViewContainer"] input,
-        [data-testid="stAppViewContainer"] textarea,
-        [data-testid="stAppViewContainer"] select {
-            background-color: rgba(255,255,255,0.85) !important;
-            color: #1f1f1f !important;
-        }
-        """
+    bg = _b64(BG_NIGHT)
+    overlay = "rgba(14,17,23,0.78)"
     st.markdown(
         f"""
         <style>
@@ -94,8 +44,47 @@ def apply_background() -> None:
         [data-testid="stHeader"] {{
             background: transparent;
         }}
-        {text_override}
         </style>
         """,
         unsafe_allow_html=True,
     )
+
+
+def render_footer() -> None:
+    """Subtelny 'by Pietras' w stopce. PNG jesli dostepny, fallback do tekstu."""
+    if BY_PIETRAS_DARK.exists():
+        b64 = _b64(BY_PIETRAS_DARK)
+        st.markdown(
+            f"""
+            <div style="
+                position: fixed;
+                bottom: 8px;
+                right: 16px;
+                z-index: 999;
+                opacity: 0.55;
+                pointer-events: none;
+            ">
+                <img src="data:image/png;base64,{b64}" style="height: 22px;" />
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            """
+            <div style="
+                position: fixed;
+                bottom: 8px;
+                right: 16px;
+                z-index: 999;
+                opacity: 0.55;
+                font-size: 0.75rem;
+                font-style: italic;
+                color: #cccccc;
+                pointer-events: none;
+            ">
+                by Pietras
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )

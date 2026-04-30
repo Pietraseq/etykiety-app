@@ -30,7 +30,7 @@ except ImportError as e:
 from src.ui.translate import render_translate_section
 from src.ui.settings import render_basic_settings
 from src.ui.preview import render_combined_section
-from src.ui.branding import apply_background, render_header
+from src.ui.branding import apply_background, render_footer, render_header
 
 
 st.set_page_config(
@@ -57,3 +57,5 @@ basic_params = render_basic_settings(translations)
 # Sekcja 6: zaawansowane + live preview side-by-side
 st.markdown("---")
 render_combined_section(basic_params)
+
+render_footer()
