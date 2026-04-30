@@ -28,6 +28,7 @@ except ImportError as e:
     DEFAULT_LANG_TO_FLAG = {}
 
 from src.ui.translate import render_translate_section
+from src.ui.settings import render_settings_section
 
 
 st.set_page_config(
@@ -47,18 +48,21 @@ if not SVG_ENGINE_OK:
 # Sekcja: tlumaczenie przez prompt do AI -> 15 textarea
 translations = render_translate_section()
 
-# Faza C/D - settings + preview - placeholder
+# Sekcja: ustawienia + auto-tune
 st.markdown("---")
-st.subheader("5. Ustawienia layoutu (Faza C - WIP)")
-st.info(
-    "Tu beda: layout (8+7 / 5+5+5 / 3+3+3+3+3), styl markera "
-    "(flaga / skrot z kolorem), preferowana liczba wierszy, auto-tune font."
-)
+generation_params = render_settings_section(translations)
 
-st.subheader("6. Podglad i pobranie SVG (Faza D - WIP)")
-if translations:
-    st.success(f"Stan: {len(translations)} jezykow gotowych do generacji.")
-    with st.expander(f"Debug - sparsowane {len(translations)} jezykow"):
-        st.json(translations)
+# Faza D - preview + download - placeholder
+st.markdown("---")
+st.subheader("7. Podglad i pobranie SVG (Faza D - WIP)")
+if generation_params:
+    st.info(
+        "Tu bedzie: live preview SVG + przycisk download. "
+        "Aktualnie gotowe parametry generacji (debug)."
+    )
+    with st.expander("Debug - parametry generacji"):
+        # Pomijamy translations w widoku zeby nie zaspamowac
+        params_view = {k: v for k, v in generation_params.items() if k != "translations"}
+        st.json(params_view)
 else:
-    st.info("Wklej odpowiedz AI w sekcji 3 zeby zobaczyc dane do generacji.")
+    st.info("Uzupelnij sekcje 1-3 (15 jezykow) zeby aktywowac generacje.")
