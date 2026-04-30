@@ -21,6 +21,18 @@ Aktualny stan prac. Ostatnia aktualizacja: 2026-04-30 (sesja domowy PC, wieczór
 
 ## Do zrobienia (next session)
 
+### UI iteracja (uwagi Pietrasa, wieczór 2026-04-30)
+
+- [ ] **Strefa robocza w preview**: zostawić widoczną, ale zmienić kolor ramki (obecnie pomarańczowa). Zachowanie: tekst wystający poza strefę nadal widoczny — ramka jako wskaźnik, nie clip.
+- [ ] **"by Pietras"**: znaleźć gdzie jeszcze jest w UI/wygenerowanych plikach i usunąć (atrybucja już raz odrzucona — sprawdzić logo, footer, metadata SVG).
+- [ ] **Preferowana liczba wierszy**: ładniej sformatowany input (lepszy label/spacing/grupowanie z auto-tune).
+- [ ] **Obramówka etykiety w preview**: bardziej widoczna (grubsza/kontrastowa).
+- [ ] **Justify toggle**: dwie opcje formatowania tekstu — (a) wyjustowany na całą szerokość, (b) aktualne formatowanie. Radio/checkbox w settings.
+- [ ] **Pin szerokość etykiety ↔ szerokość tekstu**: opcja sprzęgnięcia tych dwóch parametrów. Gdy włączone, zmiana jednego automatycznie aktualizuje drugi z zachowaniem **marginesu** (jednostka: % albo mm — wybór).
+- [ ] **Usunąć przykłady w nawiasach z UI hints**: np. `(jak d60900)` przy kolorze, `(jak HappSnack)` przy nazwie produktu. Same nawiasy z przykładami-wzorcami won.
+
+### Wcześniejsze TODO
+
 - [ ] Review wizualny po Codex re-run loga → commit jeśli OK
 - [ ] **Faza E**: README dla grafika ze screenshotami workflow, polish error handling, decyzja o hostingu (lokalnie vs Streamlit Cloud)
 - [ ] Test grafików E2E na realnej etykiecie nowego produktu
