@@ -50,12 +50,13 @@ def build_format_prompt(raw_translations: str) -> str:
 
     return f"""Format the following translations into the standard output format. The translations are already done - your job is ONLY to normalize formatting and assign correct language codes.
 
-OUTPUT FORMAT - one block per language, separator " === ":
+OUTPUT FORMAT - one line per language. Each line: language code, then " === " (space-equals-equals-equals-space) ONCE, then translation text. Example pattern:
 
 {blocks}
 
 RULES:
 - Use the language code prefix exactly as shown (EN, PL, UK, RO, DE, HU, LT, SK, CZ, IT, ES, GR, FR, PT, RU)
+- The " === " separator appears EXACTLY ONCE per line, between code and text. NEVER add a closing " === " at the end of the line.
 - UK = Ukrainian (NOT British English)
 - Plain text only - no markdown, no asterisks (**), no bullet points (-, *), no quotation marks around translations
 - One translation per line; if input is multi-line, merge into single line
@@ -88,7 +89,7 @@ def build_prompt(source_text: str, source_lang: str = "EN") -> str:
 
     return f"""Translate the following text to 15 languages used on Happet pet product labels.
 
-OUTPUT FORMAT - one block per language, separator " === ":
+OUTPUT FORMAT - one line per language. Each line: language code, then " === " (space-equals-equals-equals-space) ONCE, then the translation text. Example pattern:
 
 {blocks}
 
@@ -98,6 +99,7 @@ RULES:
 - Match the source length - don't add explanations or padding
 - Plain text only - no markdown, no asterisks (**), no bullet points (-, *)
 - Use the language code prefix exactly as shown (EN, PL, UK, RO, DE, HU, LT, SK, CZ, IT, ES, GR, FR, PT, RU)
+- The " === " separator appears EXACTLY ONCE per line, between code and translation. NEVER add a closing " === " at the end of the line.
 - UK = Ukrainian (NOT British English)
 - One translation per line; if text is multi-sentence, keep it on one line
 
