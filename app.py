@@ -28,7 +28,6 @@ except ImportError as e:
     DEFAULT_LANG_TO_FLAG = {}
 
 from src.ui.translate import render_translate_section
-from src.ui.settings import render_basic_settings
 from src.ui.preview import render_combined_section
 from src.ui.branding import apply_background, render_footer, render_header
 
@@ -58,10 +57,7 @@ try:
     translations = render_translate_section()
 
     st.markdown("---")
-    basic_params = render_basic_settings(translations)
-
-    st.markdown("---")
-    render_combined_section(basic_params)
+    render_combined_section(translations)
 except Exception as e:
     st.error(
         "**Wystąpił nieoczekiwany błąd aplikacji.**\n\n"

@@ -78,6 +78,9 @@ def _strip_markdown_artifacts(text: str) -> str:
 def _clean_translation_text(text: str) -> str:
     """Usun trailing artefakty markdown z tekstu tlumaczenia."""
     text = text.strip()
+    # Usun trailing zamykajacy separator '===' (AI czasem dodaje na koncu linii
+    # lustrzany separator, np. 'EN === Hello world ===')
+    text = re.sub(r"\s*=+\s*$", "", text).strip()
     # Usun trailing backticks, gwiazdki, podkreslenia (markdown)
     text = re.sub(r"[`*_]+$", "", text).strip()
     # Usun otaczajace cudzyslowy

@@ -1,7 +1,8 @@
-"""Streamlit UI - kombinowana sekcja: zaawansowane + auto-tune + live preview.
+"""Streamlit UI - sekcja 6: kompletny panel konfiguracji + live preview.
 
-Layout: st.columns([1, 3]) - po lewej zaawansowane (slider+input), po prawej
-duzy podglad SVG z obramowka strefy roboczej. SVG width=100% wypelnia kolumne.
+Po refactorze 2026-05-01 cala konfiguracja (layout, marker, justify, preferowana
+liczba wierszy, rozmiar etykiety, obszar tekstu, odstepy) jest po lewej obok
+podgladu - jedna kolumna do scrollowania, podglad zawsze widoczny po prawej.
 """
 
 from __future__ import annotations
@@ -19,54 +20,64 @@ from label_generator.svg_writer import write_svg
 
 from src.logic.tuner import build_temp_config, find_optimal_font
 
+from src.ui.settings import (
+    JUSTIFY_FULL_LABEL,
+    JUSTIFY_RAGGED_LABEL,
+    LAYOUT_CHOICES,
+    LAYOUT_LABELS,
+    MARKER_LABELS,
+    MARKER_STYLES,
+)
 from src.ui.widgets import dual_input
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2] / "etykiety_svg"
 
 PREVIEW_HEIGHT_PX = 1500
-WORKSPACE_OUTLINE_COLOR_OK = "#1976D2"        # niebieski - obszar tekstu (OK)
-WORKSPACE_OUTLINE_COLOR_OVERFLOW = "#D32F2F"  # czerwony - tekst wystaje poza obszar
-PAGE_OUTLINE_COLOR = "#111111"                # czarny - granica calej etykiety, kontrastowa
+WORKSPACE_OUTLINE_COLOR_OK = "#1976D2"
+WORKSPACE_OUTLINE_COLOR_OVERFLOW = "#D32F2F"
+PAGE_OUTLINE_COLOR = "#111111"
 
 TEXT_AREA_X = 5.0
 TEXT_AREA_Y = 5.0
 
 
-def render_combined_section(basic_params: dict | None) -> None:
-    """Render zaawansowane settings + auto-tune + podglad SVG w 2 kolumnach."""
-    if not basic_params:
+def render_combined_section(translations: dict[str, str] | None) -> None:
+    """Render kompletnego panelu: konfiguracja po lewej + podglad SVG po prawej."""
+    if not translations or len(translations) < 15:
+        n = len(translations) if translations else 0
+        st.info(f"Wymagane wszystkie 15 języków do dostrojenia layoutu ({n}/15 wypełnionych).")
         return
 
-    st.subheader("6. Modelowanie i podgląd")
+    st.subheader("5. Ustawienia layoutu i podgląd")
     st.caption(
-        "Zmieniaj parametry po lewej (suwak lub liczba) — podgląd po prawej "
-        "aktualizuje się automatycznie. Niebieska ramka = obszar tekstu (strefa robocza), "
-        "czarna ramka = krawędź etykiety. Ramki są tylko podglądem, NIE są zapisane w pliku SVG."
+        "Wszystkie parametry po lewej — podgląd po prawej aktualizuje się automatycznie. "
+        "Niebieska ramka = obszar tekstu (strefa robocza), czarna ramka = krawędź etykiety. "
+        "Ramki są tylko podglądem, NIE są zapisane w pliku SVG."
     )
 
     col_left, col_right = st.columns([1, 3])
 
     with col_left:
-        advanced = _render_advanced_inputs()
+        config = _render_left_panel()
 
     config_kwargs = {
-        "layout_name": basic_params["layout"],
-        "page_size": (advanced["page_w"], advanced["page_h"]),
-        "text_area_size": (advanced["text_area_w"], advanced["text_area_h"]),
-        "gutter_mm": advanced["gutter"],
-        "marker_size_mm": advanced["marker_override"] if advanced["marker_override"] > 0 else None,
-        "marker_style": basic_params["marker_style"],
-        "marker_color": basic_params["marker_color"],
-        "inter_block_gap_mm": advanced["inter_gap"] if advanced["inter_gap"] > 0 else None,
-        "justify_full": basic_params.get("justify_full", True),
+        "layout_name": config["layout"],
+        "page_size": (config["page_w"], config["page_h"]),
+        "text_area_size": (config["text_area_w"], config["text_area_h"]),
+        "gutter_mm": config["gutter"],
+        "marker_size_mm": config["marker_override"] if config["marker_override"] > 0 else None,
+        "marker_style": config["marker_style"],
+        "marker_color": config["marker_color"],
+        "inter_block_gap_mm": config["inter_gap"] if config["inter_gap"] > 0 else None,
+        "justify_full": config["justify_full"],
     }
 
     try:
         with col_left:
             with st.spinner("Bisekcja..."):
                 optimal_font, lines_per_lang = find_optimal_font(
-                    basic_params["translations"],
-                    basic_params["preferred_lines"],
+                    translations,
+                    config["preferred_lines"],
                     **config_kwargs,
                 )
     except Exception as e:
@@ -75,14 +86,15 @@ def render_combined_section(basic_params: dict | None) -> None:
 
     max_lines = max(lines_per_lang.values()) if lines_per_lang else 0
     min_lines = min(lines_per_lang.values()) if lines_per_lang else 0
-    is_feasible = max_lines <= basic_params["preferred_lines"]
+    is_feasible = max_lines <= config["preferred_lines"]
 
     with col_left:
+        st.markdown("### Wynik")
         if not is_feasible:
             st.error(
                 f"### Etykieta niemożliwa\n\n"
                 f"Najdłuższy język: **{max_lines}** wierszy zamiast preferowanych "
-                f"**{basic_params['preferred_lines']}** (font {optimal_font:.2f} mm).\n\n"
+                f"**{config['preferred_lines']}** (font {optimal_font:.2f} mm).\n\n"
                 f"Możliwości:\n"
                 f"- Skróć tekst źródłowy\n"
                 f"- Zwiększ wysokość obszaru tekstu\n"
@@ -100,13 +112,13 @@ def render_combined_section(basic_params: dict | None) -> None:
         if not is_feasible:
             overflow_langs = [
                 f"{code} ({n})" for code, n in lines_per_lang.items()
-                if n > basic_params["preferred_lines"]
+                if n > config["preferred_lines"]
             ]
             if overflow_langs:
                 st.markdown(f"**Wystają:** {', '.join(overflow_langs)}")
 
     full_params = {
-        **basic_params,
+        "translations": translations,
         **config_kwargs,
         "optimal_font_mm": optimal_font,
         "lines_per_lang": lines_per_lang,
@@ -126,6 +138,7 @@ DEFAULTS = {
     "inter_gap": 0.0,
     "marker_override": 0.0,
     "pin_margin_mm": 5.0,
+    "preferred_lines_f": 4.0,
 }
 
 PIN_KEY = "pin_text_width_to_page"
@@ -143,14 +156,59 @@ def _reset_defaults() -> None:
     st.session_state[PIN_KEY] = False
 
 
-def _render_advanced_inputs() -> dict:
-    """Render slider+number inputs w lewej kolumnie."""
+def _render_left_panel() -> dict:
+    """Render kompletnego panelu konfiguracji (layout, marker, justify, wymiary)."""
     st.button(
         "Ustawienia domyślne",
         use_container_width=True,
         on_click=_reset_defaults,
         help="Przywróć wartości początkowe wszystkich parametrów.",
     )
+
+    st.markdown("### Layout i marker")
+    layout = st.radio(
+        "Layout",
+        options=LAYOUT_CHOICES,
+        format_func=lambda x: LAYOUT_LABELS[x],
+        index=0,
+        help="Im więcej kolumn, tym węższe bloki tekstu i więcej linii w bloku.",
+        key="layout_choice",
+    )
+    marker_style = st.radio(
+        "Styl markera (znacznika języka)",
+        options=MARKER_STYLES,
+        format_func=lambda x: MARKER_LABELS[x],
+        index=0,
+        key="marker_style_choice",
+    )
+    if marker_style == "text_rect":
+        marker_color = st.color_picker(
+            "Kolor kwadracika",
+            value="#E60000",
+            key="marker_color_pick",
+        )
+    else:
+        marker_color = "#E60000"
+
+    st.markdown("### Tekst")
+    justify_choice = st.radio(
+        "Sposób wyrównania linii",
+        options=[JUSTIFY_FULL_LABEL, JUSTIFY_RAGGED_LABEL],
+        index=0,
+        key="justify_choice",
+        help=(
+            "Wyjustowany: linie wypełniają całą szerokość kolumny przez rozszerzenie spacji. "
+            "Wyrównany do lewej: linie naturalnej długości, bez rozszerzania spacji."
+        ),
+    )
+    justify_full = justify_choice == JUSTIFY_FULL_LABEL
+
+    preferred_lines_f = dual_input(
+        "Preferowana liczba wierszy w bloku",
+        1.0, 10.0, DEFAULTS["preferred_lines_f"], 1.0, "preferred_lines_f", format="%d",
+        help_text="najdłuższy język nie przekroczy tej liczby",
+    )
+    preferred_lines = int(round(preferred_lines_f))
 
     st.markdown("### Rozmiar etykiety")
     page_w = dual_input("Szerokość (mm)", 50.0, 300.0, DEFAULTS["page_w"], 0.1, "page_w", format="%.2f")
@@ -173,8 +231,6 @@ def _render_advanced_inputs() -> dict:
         )
         text_area_w = max(20.0, page_w - 2 * margin)
         st.caption(f"Szerokość obszaru tekstu (auto): **{text_area_w:.2f} mm**")
-        # Synchronizuj pochodną wartość do session_state, żeby po wyłączeniu pinu
-        # użytkownik miał ostatnio wyliczoną wartość w sliderze.
         st.session_state["ta_w"] = text_area_w
         for k in ("ta_w__sl", "ta_w__ni"):
             if k in st.session_state:
@@ -196,6 +252,11 @@ def _render_advanced_inputs() -> dict:
     )
 
     return {
+        "layout": layout,
+        "marker_style": marker_style,
+        "marker_color": marker_color,
+        "justify_full": justify_full,
+        "preferred_lines": preferred_lines,
         "page_w": page_w,
         "page_h": page_h,
         "text_area_w": text_area_w,
@@ -291,7 +352,6 @@ def _prepare_svg_for_preview(svg_string: str, params: dict) -> str:
     page_w, page_h = params["page_size"]
     is_feasible = params.get("is_feasible", True)
 
-    # Stroke width w mm; krawedz etykiety grubsza i bardziej widoczna od strefy roboczej
     page_stroke = max(0.30, page_w * 0.0025)
     workspace_stroke = max(0.18, page_w * 0.0012)
 
