@@ -22,7 +22,6 @@ from src.logic.prompt_template import (
     build_format_prompt,
     build_prompt,
 )
-from src.ui.widgets import js_copy_button
 
 MODE_TRANSLATE = "Przetłumacz z PL/EN"
 MODE_FORMAT = "Mam już 15 tłumaczeń, sformatuj"
@@ -87,18 +86,12 @@ def render_translate_section() -> dict[str, str]:
     if prompt is None:
         st.info("Wpisz tekst powyżej, żeby wygenerować prompt.")
     else:
-        with st.expander("Podgląd promptu (15 języków + zasady formatowania)", expanded=False):
-            st.code(prompt, language="markdown")
-
-        col_a, col_b = st.columns([1, 3])
-        with col_a:
-            js_copy_button(prompt, label="Skopiuj prompt")
-        with col_b:
-            st.caption(
-                "Wklej prompt do dowolnego AI (ChatGPT, Claude.ai, Gemini, "
-                "Mistral...). AI odpowie 15 liniami w formacie `KOD === tekst`. "
-                "Backup: rozwiń podgląd promptu wyżej i użyj ikony copy w prawym górnym rogu."
-            )
+        st.caption(
+            "Kliknij ikonę **Copy to clipboard** w prawym górnym rogu pola poniżej, "
+            "potem wklej prompt do dowolnego AI (ChatGPT, Claude.ai, Gemini, Mistral...). "
+            "AI odpowie 15 liniami w formacie `KOD === tekst`."
+        )
+        st.code(prompt, language="markdown")
 
     st.subheader("3. Wklej odpowiedź AI")
     ai_response = st.text_area(
