@@ -14,7 +14,7 @@ from typing import Iterable
 
 from .prompt_template import LANGUAGES
 
-# Submodule etykiety_svg jest dodany do sys.path w app.py - importujemy z niego
+# Silnik label_generator jest vendor-owany w src/, dodany do sys.path w app.py
 from label_generator.config import (
     FlagsConfig,
     FontConfig,
@@ -26,7 +26,8 @@ from label_generator.config import (
 from label_generator.layout import layout_page
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2] / "etykiety_svg"
+# fonts/ i assets/flags/ leza w glownym katalogu projektu (etykiety-app/)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def build_column_split(

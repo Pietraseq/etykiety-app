@@ -10,10 +10,12 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# Submodule etykiety_svg dostarcza silnik renderowania SVG
-SUBMODULE_SRC = Path(__file__).parent / "etykiety_svg" / "src"
-if SUBMODULE_SRC.exists() and str(SUBMODULE_SRC) not in sys.path:
-    sys.path.insert(0, str(SUBMODULE_SRC))
+# Silnik renderowania SVG (label_generator) jest vendor-owany w src/.
+# Dodajemy src/ do sys.path zeby `from label_generator.X` dzialalo top-level
+# (kod silnika nie zna struktury aplikacji - traktuje siebie jako root pakiet).
+ENGINE_SRC = Path(__file__).parent / "src"
+if ENGINE_SRC.exists() and str(ENGINE_SRC) not in sys.path:
+    sys.path.insert(0, str(ENGINE_SRC))
 
 import streamlit as st
 
@@ -43,14 +45,14 @@ render_header()
 
 if not SVG_ENGINE_OK:
     st.error(
-        f"Silnik renderowania SVG (`etykiety-svg`) nie został załadowany.\n\n"
+        f"Silnik renderowania SVG (`label_generator`) nie został załadowany.\n\n"
         f"**Szczegóły błędu:** `{SVG_ENGINE_ERROR}`"
     )
     st.markdown(
-        "Najczęstsza przyczyna: submodule nie został zainicjalizowany po klonowaniu repo. "
-        "Wykonaj poniższą komendę w katalogu projektu:"
+        "Sprawdź czy katalog `src/label_generator/` zawiera pełen kod silnika "
+        "(layout.py, svg_writer.py, config.py i pozostałe). Jeśli brakuje plików — "
+        "ponownie sklonuj repo."
     )
-    st.code("git submodule update --init --recursive", language="bash")
     st.stop()
 
 try:

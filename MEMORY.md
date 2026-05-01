@@ -17,6 +17,11 @@ Aktualny stan prac. Ostatnia aktualizacja: 2026-05-01 (sesja domowy PC, rano)
 
 ## Zmiany sesji 2026-05-01 rano (domowy PC)
 
+- **VENDOR silnika `label_generator`**: submoduł `etykiety_svg` ZNIKA z `etykiety-app`. Cały kod silnika (`label_generator/`), `fonts/` i `assets/flags/` skopiowane do `etykiety-app/src/label_generator/`, `etykiety-app/fonts/`, `etykiety-app/assets/flags/`. `.gitmodules` usunięty, `etykiety_svg/` w `.gitignore`. Powód: Streamlit Cloud nie wykonuje `git submodule update --init --recursive` przy klonowaniu — deploy padał z `ModuleNotFoundError: label_generator`. Vendor eliminuje całą klasę problemów. `etykiety-svg` jako osobne repo zostaje (CLI standalone), ale `etykiety-app` przestaje od niego zależeć.
+- **Repo PUBLIC**: `etykiety-app` i `etykiety-svg` upublicznione (gh CLI). Wymagane dla Streamlit Cloud free tier.
+- **Streamlit Cloud deploy**: `https://happylabel.streamlit.app` (po vendoring). Auto-deploy z każdego `git push origin main`.
+
+
 - **Strefa robocza w preview**: pomarańczowa → niebieska (`#1976D2`). Czerwona (`#D32F2F`) zostaje przy overflow.
 - **Krawędź etykiety w preview**: jasna szara → czarna (`#111111`), grubsza (`stroke = page_w * 0.0025`).
 - **Pin szerokości obszaru tekstu do szerokości etykiety**: checkbox + margines (mm). Gdy włączony, slider „Szerokość obszaru tekstu" ukryty, wartość liczona automatycznie z `page_w - 2 × margin` i wyświetlana jako caption.

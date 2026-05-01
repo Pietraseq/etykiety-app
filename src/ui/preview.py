@@ -30,7 +30,8 @@ from src.ui.settings import (
 )
 from src.ui.widgets import dual_input
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2] / "etykiety_svg"
+# fonts/ i assets/flags/ leza w glownym katalogu projektu (etykiety-app/)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 PREVIEW_HEIGHT_PX = 1500
 WORKSPACE_OUTLINE_COLOR_OK = "#1976D2"

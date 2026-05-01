@@ -22,7 +22,7 @@ Aplikacja Streamlit dla grafika Happet — generuje wielojęzyczne etykiety SVG 
 ## Quick start
 
 ```powershell
-git clone --recursive https://github.com/Pietraseq/etykiety-app.git
+git clone https://github.com/Pietraseq/etykiety-app.git
 cd etykiety-app
 py -3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -32,19 +32,7 @@ streamlit run app.py
 # Otwiera się http://localhost:8501
 ```
 
-⚠️ Flaga `--recursive` jest WAŻNA — bez niej submodule `etykiety_svg/` będzie pusty i aplikacja nie wystartuje.
-
-Jeśli zapomniałeś `--recursive`:
-
-```powershell
-git submodule update --init --recursive
-```
-
-Po update silnika SVG (po `git pull` w `etykiety-app`):
-
-```powershell
-git submodule update --remote etykiety_svg
-```
+Silnik renderowania SVG (`label_generator`) żyje w tym samym repo (`src/label_generator/`) — nie ma submodułów do inicjalizowania.
 
 ## Funkcje zaawansowane (sekcja 6 w UI)
 
@@ -58,7 +46,7 @@ git submodule update --remote etykiety_svg
 
 | Problem | Rozwiązanie |
 |---|---|
-| Aplikacja nie startuje, błąd o `etykiety-svg` | `git submodule update --init --recursive` |
+| Aplikacja nie startuje, błąd o `label_generator` | Sprawdź czy `src/label_generator/` zawiera pełen kod silnika (layout.py, svg_writer.py, config.py i pozostałe). Jeśli nie — sklonuj repo ponownie. |
 | Brakuje przycisku „Skopiuj prompt" | Wpisz tekst źródłowy i kliknij „Zatwierdź tekst" (lub Ctrl+Enter) |
 | Parser nie znalazł żadnego języka | Sprawdź czy AI użyło separatora `===` (a nie `:` lub `-`). W razie potrzeby popraw odpowiedź ręcznie. |
 | „Etykieta niemożliwa" | Skróć tekst, zwiększ obszar tekstu, zwiększ preferowaną liczbę wierszy lub wybierz węższy layout |
@@ -71,14 +59,14 @@ git submodule update --remote etykiety_svg
 - `MEMORY.md` — stan prac, historia decyzji
 - `PLAN.md` — fazy implementacji A–E
 - `REFERENCES.md` — Streamlit, format promptu, gotchas
-- `etykiety_svg/` — submodule, silnik renderowania SVG (osobne repo)
+- `src/label_generator/` — silnik renderowania SVG (vendor-owany; źródło `Pietraseq/etykiety-svg`)
 
 ## Stack
 
 - Python 3.13 + venv
 - Streamlit (UI w przeglądarce)
 - pyperclip (schowek)
-- etykiety-svg (silnik SVG, jako git submodule)
+- label_generator (silnik SVG, vendor-owany w `src/label_generator/`)
 
 ## Dane
 

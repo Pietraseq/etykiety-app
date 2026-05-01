@@ -15,3 +15,6 @@ _codex-brief.md
 _codex-brief-logo-fix.md
 _codex-brief-logo-v3.md
 tmp/
+# Stary submodule etykiety_svg - wciagniety do src/label_generator/, fonts/, assets/flags/
+# Folder zostaje lokalnie (development), nie jest trackowany przez git.
+etykiety_svg/
