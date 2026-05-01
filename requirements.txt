@@ -1,7 +1,6 @@
 streamlit>=1.40
-pyperclip>=1.9
 
-# Re-export z etykiety-svg (silnik) - musza byc te same wersje
+# Silnik label_generator (vendor-owany w src/label_generator/) - jego zaleznosci
 fonttools>=4.50
 lxml>=5.0
 pyphen>=0.15

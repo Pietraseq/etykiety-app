@@ -1,8 +1,61 @@
-"""Streamlit helpery do reuzywania - dual_input (slider + number_input synced)."""
+"""Streamlit helpery do reuzywania - dual_input (slider + number_input synced)
+oraz js_copy_button (clipboard przez JS, dziala lokalnie i na Streamlit Cloud)."""
 
 from __future__ import annotations
 
+import json
+
 import streamlit as st
+import streamlit.components.v1 as components
+
+
+def js_copy_button(text: str, label: str = "Skopiuj prompt", height: int = 50) -> None:
+    """Przycisk copy oparty o JavaScript - dziala wszedzie (lokalnie + chmura).
+
+    Uzywa klasycznego trick z document.execCommand('copy') na schowanym
+    textarea - zawsze dostepne, nie wymaga pozwolen iframe ani HTTPS context.
+    Zastapuje pyperclip ktore na Streamlit Cloud (Linux runtime bez X11) failuje.
+    """
+    safe = json.dumps(text)
+    components.html(
+        f"""
+        <button id="copy-btn" onclick="
+            const ta = document.createElement('textarea');
+            ta.value = {safe};
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            ta.style.top = '0';
+            ta.style.left = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {{
+                document.execCommand('copy');
+                this.innerText = 'Skopiowano ✓';
+                this.style.background = '#16a34a';
+            }} catch(e) {{
+                this.innerText = 'Blad kopiowania';
+                this.style.background = '#dc2626';
+            }}
+            document.body.removeChild(ta);
+            setTimeout(() => {{
+                this.innerText = '{label}';
+                this.style.background = '#ff4b4b';
+            }}, 2000);
+        " style="
+            background: #ff4b4b;
+            color: white;
+            border: none;
+            padding: 0.55rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            width: 100%;
+            font-family: 'Source Sans Pro', sans-serif;
+        ">{label}</button>
+        """,
+        height=height,
+    )
 
 
 def dual_input(

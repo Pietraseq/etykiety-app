@@ -15,12 +15,6 @@ from __future__ import annotations
 
 import streamlit as st
 
-try:
-    import pyperclip
-    PYPERCLIP_OK = True
-except ImportError:
-    PYPERCLIP_OK = False
-
 from src.logic.parser import parse_translations, validate_translations
 from src.logic.prompt_template import (
     LANGUAGES,
@@ -28,6 +22,7 @@ from src.logic.prompt_template import (
     build_format_prompt,
     build_prompt,
 )
+from src.ui.widgets import js_copy_button
 
 MODE_TRANSLATE = "Przetłumacz z PL/EN"
 MODE_FORMAT = "Mam już 15 tłumaczeń, sformatuj"
@@ -97,19 +92,12 @@ def render_translate_section() -> dict[str, str]:
 
         col_a, col_b = st.columns([1, 3])
         with col_a:
-            if st.button("Skopiuj prompt", type="primary", use_container_width=True):
-                if PYPERCLIP_OK:
-                    try:
-                        pyperclip.copy(prompt)
-                        st.success("Skopiowano — wklej do ChatGPT/Claude.ai/Gemini.")
-                    except Exception as e:
-                        st.error(f"Błąd schowka: {e}. Skopiuj ręcznie z podglądu wyżej.")
-                else:
-                    st.warning("pyperclip nie zainstalowany — skopiuj ręcznie z podglądu.")
+            js_copy_button(prompt, label="Skopiuj prompt")
         with col_b:
             st.caption(
                 "Wklej prompt do dowolnego AI (ChatGPT, Claude.ai, Gemini, "
-                "Mistral...). AI odpowie 15 liniami w formacie `KOD === tekst`."
+                "Mistral...). AI odpowie 15 liniami w formacie `KOD === tekst`. "
+                "Backup: rozwiń podgląd promptu wyżej i użyj ikony copy w prawym górnym rogu."
             )
 
     st.subheader("3. Wklej odpowiedź AI")
