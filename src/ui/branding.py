@@ -51,20 +51,24 @@ def apply_background() -> None:
 
 
 def render_footer() -> None:
-    """Subtelny 'by Pietras' w stopce. PNG jesli dostepny, fallback do tekstu."""
+    """Widoczny 'by Pietras' w stopce. PNG jesli dostepny, fallback do tekstu."""
     if BY_PIETRAS_DARK.exists():
         b64 = _b64(BY_PIETRAS_DARK)
         st.markdown(
             f"""
             <div style="
                 position: fixed;
-                bottom: 8px;
-                right: 16px;
+                bottom: 14px;
+                right: 22px;
                 z-index: 999;
-                opacity: 0.55;
+                opacity: 0.92;
                 pointer-events: none;
+                background: rgba(20, 24, 32, 0.55);
+                padding: 6px 14px;
+                border-radius: 8px;
+                backdrop-filter: blur(4px);
             ">
-                <img src="data:image/png;base64,{b64}" style="height: 22px;" />
+                <img src="data:image/png;base64,{b64}" style="height: 36px; display: block;" />
             </div>
             """,
             unsafe_allow_html=True,
@@ -74,14 +78,18 @@ def render_footer() -> None:
             """
             <div style="
                 position: fixed;
-                bottom: 8px;
-                right: 16px;
+                bottom: 14px;
+                right: 22px;
                 z-index: 999;
-                opacity: 0.55;
-                font-size: 0.75rem;
+                opacity: 0.92;
+                font-size: 1.05rem;
                 font-style: italic;
-                color: #cccccc;
+                color: #f0f0f0;
                 pointer-events: none;
+                background: rgba(20, 24, 32, 0.55);
+                padding: 6px 14px;
+                border-radius: 8px;
+                backdrop-filter: blur(4px);
             ">
                 by Pietras
             </div>

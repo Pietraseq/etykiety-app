@@ -78,6 +78,7 @@ def build_temp_config(
     inter_block_gap_mm: float | None = None,
     enable_hyphenation: bool = True,
     hyphenation_per_lang: dict[str, bool] | None = None,
+    justify_full: bool = True,
 ) -> LabelConfig:
     """Zbuduj LabelConfig dla testowej symulacji layoutu (bez zapisu SVG).
 
@@ -120,6 +121,7 @@ def build_temp_config(
         languages=texts,
         column_split=column_split,
         inter_block_gap_mm=inter_block_gap_mm,
+        justify_full=justify_full,
     )
 
 

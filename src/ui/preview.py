@@ -1,12 +1,11 @@
 """Streamlit UI - kombinowana sekcja: zaawansowane + auto-tune + live preview.
 
 Layout: st.columns([1, 3]) - po lewej zaawansowane (slider+input), po prawej
-duzy preview SVG z obramowka strefy roboczej. SVG width=100% wypelnia kolumne.
+duzy podglad SVG z obramowka strefy roboczej. SVG width=100% wypelnia kolumne.
 """
 
 from __future__ import annotations
 
-import base64
 import io
 import re
 import tempfile
@@ -25,25 +24,24 @@ from src.ui.widgets import dual_input
 PROJECT_ROOT = Path(__file__).resolve().parents[2] / "etykiety_svg"
 
 PREVIEW_HEIGHT_PX = 1500
-WORKSPACE_OUTLINE_COLOR_OK = "#FF6B35"  # pomaranczowy - text area, jest OK
-WORKSPACE_OUTLINE_COLOR_OVERFLOW = "#FF1744"  # czerwony - tekst wystaje poza
-PAGE_OUTLINE_COLOR = "#A0A0A0"  # szary - granica calej etykiety
+WORKSPACE_OUTLINE_COLOR_OK = "#1976D2"        # niebieski - obszar tekstu (OK)
+WORKSPACE_OUTLINE_COLOR_OVERFLOW = "#D32F2F"  # czerwony - tekst wystaje poza obszar
+PAGE_OUTLINE_COLOR = "#111111"                # czarny - granica calej etykiety, kontrastowa
 
-# Default origin obszaru tekstu (powinno zgadzac sie z build_temp_config)
 TEXT_AREA_X = 5.0
 TEXT_AREA_Y = 5.0
 
 
 def render_combined_section(basic_params: dict | None) -> None:
-    """Render zaawansowane settings + auto-tune + preview SVG w 2 kolumnach."""
+    """Render zaawansowane settings + auto-tune + podglad SVG w 2 kolumnach."""
     if not basic_params:
         return
 
-    st.subheader("6. Modelowanie i podglad")
+    st.subheader("6. Modelowanie i podgląd")
     st.caption(
-        "Zmieniaj parametry po lewej (suwak lub liczba) - podglad po prawej "
-        "aktualizuje sie automatycznie. Pomaranczowa ramka pokazuje strefe robocza "
-        "(obszar tekstu) - to tylko podglad, NIE jest zapisana w pliku SVG."
+        "Zmieniaj parametry po lewej (suwak lub liczba) — podgląd po prawej "
+        "aktualizuje się automatycznie. Niebieska ramka = obszar tekstu (strefa robocza), "
+        "czarna ramka = krawędź etykiety. Ramki są tylko podglądem, NIE są zapisane w pliku SVG."
     )
 
     col_left, col_right = st.columns([1, 3])
@@ -60,6 +58,7 @@ def render_combined_section(basic_params: dict | None) -> None:
         "marker_style": basic_params["marker_style"],
         "marker_color": basic_params["marker_color"],
         "inter_block_gap_mm": advanced["inter_gap"] if advanced["inter_gap"] > 0 else None,
+        "justify_full": basic_params.get("justify_full", True),
     }
 
     try:
@@ -71,7 +70,7 @@ def render_combined_section(basic_params: dict | None) -> None:
                     **config_kwargs,
                 )
     except Exception as e:
-        col_left.error(f"Bisekcja nie powiodla sie: {e}")
+        col_left.error(f"Bisekcja nie powiodła się: {e}")
         return
 
     max_lines = max(lines_per_lang.values()) if lines_per_lang else 0
@@ -81,22 +80,22 @@ def render_combined_section(basic_params: dict | None) -> None:
     with col_left:
         if not is_feasible:
             st.error(
-                f"### Etykieta niemozliwa\n\n"
-                f"Najdluzszy jezyk: **{max_lines}** wierszy zamiast preferowanych "
-                f"**{basic_params['preferred_lines']}** (font {optimal_font:.2f}mm).\n\n"
-                f"Mozliwosci:\n"
-                f"- Skroc tekst zrodlowy\n"
-                f"- Zwieksz wysokosc obszaru tekstu\n"
-                f"- Zwieksz preferowana liczbe wierszy\n"
-                f"- Wybierz wezszy layout"
+                f"### Etykieta niemożliwa\n\n"
+                f"Najdłuższy język: **{max_lines}** wierszy zamiast preferowanych "
+                f"**{basic_params['preferred_lines']}** (font {optimal_font:.2f} mm).\n\n"
+                f"Możliwości:\n"
+                f"- Skróć tekst źródłowy\n"
+                f"- Zwiększ wysokość obszaru tekstu\n"
+                f"- Zwiększ preferowaną liczbę wierszy\n"
+                f"- Wybierz węższy layout"
             )
         else:
             st.success(f"Optymalny font: **{optimal_font:.2f} mm**")
 
         if min_lines == max_lines:
-            st.markdown(f"**Wszystkie 15 jezykow: {min_lines} wierszy**")
+            st.markdown(f"**Wszystkie 15 języków: {min_lines} wierszy**")
         else:
-            st.markdown(f"**Wszystkie 15 jezykow: {min_lines}-{max_lines} wierszy**")
+            st.markdown(f"**Wszystkie 15 języków: {min_lines}-{max_lines} wierszy**")
 
         if not is_feasible:
             overflow_langs = [
@@ -104,7 +103,7 @@ def render_combined_section(basic_params: dict | None) -> None:
                 if n > basic_params["preferred_lines"]
             ]
             if overflow_langs:
-                st.markdown(f"**Wystaja:** {', '.join(overflow_langs)}")
+                st.markdown(f"**Wystają:** {', '.join(overflow_langs)}")
 
     full_params = {
         **basic_params,
@@ -126,44 +125,73 @@ DEFAULTS = {
     "gutter": 3.0,
     "inter_gap": 0.0,
     "marker_override": 0.0,
+    "pin_margin_mm": 5.0,
 }
+
+PIN_KEY = "pin_text_width_to_page"
+PIN_MARGIN_KEY = "pin_margin_mm"
 
 
 def _reset_defaults() -> None:
-    """Resetuj wartosci dual_inputow do defaultow przez wyczyszczenie session_state."""
+    """Resetuj wartości dual_inputów do defaultów przez wyczyszczenie session_state."""
     for key, val in DEFAULTS.items():
         st.session_state[key] = val
         if f"{key}__sl" in st.session_state:
             st.session_state[f"{key}__sl"] = val
         if f"{key}__ni" in st.session_state:
             st.session_state[f"{key}__ni"] = val
+    st.session_state[PIN_KEY] = False
 
 
 def _render_advanced_inputs() -> dict:
     """Render slider+number inputs w lewej kolumnie."""
     st.button(
-        "Ustawienia domyslne",
+        "Ustawienia domyślne",
         use_container_width=True,
         on_click=_reset_defaults,
-        help="Przywroc wartosci poczatkowe wszystkich parametrow.",
+        help="Przywróć wartości początkowe wszystkich parametrów.",
     )
 
     st.markdown("### Rozmiar etykiety")
-    page_w = dual_input("Szerokosc (mm)", 50.0, 300.0, DEFAULTS["page_w"], 0.1, "page_w", format="%.2f")
-    page_h = dual_input("Wysokosc (mm)", 30.0, 300.0, DEFAULTS["page_h"], 0.1, "page_h", format="%.2f")
+    page_w = dual_input("Szerokość (mm)", 50.0, 300.0, DEFAULTS["page_w"], 0.1, "page_w", format="%.2f")
+    page_h = dual_input("Wysokość (mm)", 30.0, 300.0, DEFAULTS["page_h"], 0.1, "page_h", format="%.2f")
 
     st.markdown("### Obszar dla tekstu")
-    text_area_w = dual_input("Szerokosc (mm)", 20.0, 300.0, DEFAULTS["ta_w"], 0.1, "ta_w", format="%.2f")
-    text_area_h = dual_input("Wysokosc (mm)", 20.0, 300.0, DEFAULTS["ta_h"], 0.1, "ta_h", format="%.2f")
+    pin_to_page = st.checkbox(
+        "Sprzęgnij szerokość obszaru tekstu z szerokością etykiety",
+        key=PIN_KEY,
+        help=(
+            "Gdy włączone, szerokość obszaru tekstu = szerokość etykiety - 2 × margines. "
+            "Zmiana szerokości etykiety automatycznie aktualizuje obszar tekstu."
+        ),
+    )
 
-    st.markdown("### Odstepy")
-    gutter = dual_input("Miedzy kolumnami (mm)", 0.0, 20.0, DEFAULTS["gutter"], 0.1, "gutter", format="%.2f")
+    if pin_to_page:
+        margin = dual_input(
+            "Margines (mm, lewy + prawy)",
+            0.0, 50.0, DEFAULTS["pin_margin_mm"], 0.1, PIN_MARGIN_KEY, format="%.2f",
+        )
+        text_area_w = max(20.0, page_w - 2 * margin)
+        st.caption(f"Szerokość obszaru tekstu (auto): **{text_area_w:.2f} mm**")
+        # Synchronizuj pochodną wartość do session_state, żeby po wyłączeniu pinu
+        # użytkownik miał ostatnio wyliczoną wartość w sliderze.
+        st.session_state["ta_w"] = text_area_w
+        for k in ("ta_w__sl", "ta_w__ni"):
+            if k in st.session_state:
+                st.session_state[k] = text_area_w
+    else:
+        text_area_w = dual_input("Szerokość (mm)", 20.0, 300.0, DEFAULTS["ta_w"], 0.1, "ta_w", format="%.2f")
+
+    text_area_h = dual_input("Wysokość (mm)", 20.0, 300.0, DEFAULTS["ta_h"], 0.1, "ta_h", format="%.2f")
+
+    st.markdown("### Odstępy")
+    gutter = dual_input("Między kolumnami (mm)", 0.0, 20.0, DEFAULTS["gutter"], 0.1, "gutter", format="%.2f")
     inter_gap = dual_input(
-        "Miedzy jezykami (mm, 0=auto)", 0.0, 10.0, DEFAULTS["inter_gap"], 0.1, "inter_gap", format="%.2f",
+        "Między językami (mm, 0 = auto)", 0.0, 10.0, DEFAULTS["inter_gap"], 0.1, "inter_gap", format="%.2f",
         help_text="0 = auto z fontu",
     )
     marker_override = dual_input(
-        "Marker (mm, 0=auto)", 0.0, 10.0, DEFAULTS["marker_override"], 0.1, "marker_override", format="%.2f",
+        "Marker (mm, 0 = auto)", 0.0, 10.0, DEFAULTS["marker_override"], 0.1, "marker_override", format="%.2f",
         help_text="0 = auto = line_height",
     )
 
@@ -179,11 +207,11 @@ def _render_advanced_inputs() -> dict:
 
 
 def _render_preview_panel(params: dict) -> None:
-    """Render duzego SVG preview + download buttons w prawej kolumnie."""
+    """Render dużego SVG podglądu + download buttons w prawej kolumnie."""
     try:
         svg_bytes = generate_svg_bytes(params)
     except Exception as e:
-        st.error(f"Generacja nie powiodla sie: {e}")
+        st.error(f"Generacja nie powiodła się: {e}")
         return
 
     try:
@@ -220,12 +248,10 @@ def _render_preview_panel(params: dict) -> None:
                 use_container_width=True,
             )
 
-    # Suwak powiekszenia nad podgladem - 100% = rzeczywista wielkosc mm,
-    # 500% = scale 5x. Domyslnie 200% dla widocznosci na typowym ekranie.
     zoom_col, info_col = st.columns([3, 2])
     with zoom_col:
         zoom = st.slider(
-            "Powiekszenie podgladu (100% = rzeczywista wielkosc)",
+            "Powiększenie podglądu (100% = rzeczywista wielkość)",
             min_value=50,
             max_value=500,
             value=200,
@@ -239,8 +265,6 @@ def _render_preview_panel(params: dict) -> None:
             f"Etykieta: {params['page_size'][0]:.1f} × {params['page_size'][1]:.1f} mm"
         )
 
-    # SVG do podgladu: zachowaj fixed mm width/height (zeby zoom 100% byl realnym mm)
-    # Plus dorzucamy pomaranczowa ramke strefy roboczej (TYLKO display)
     svg_string = svg_bytes.decode("utf-8")
     svg_for_preview = _prepare_svg_for_preview(svg_string, params)
 
@@ -256,49 +280,46 @@ def _render_preview_panel(params: dict) -> None:
 
 
 def _prepare_svg_for_preview(svg_string: str, params: dict) -> str:
-    """Zmodyfikuj SVG do podgladu w przegladarce.
+    """Zmodyfikuj SVG do podglądu w przeglądarce.
 
-    1. Outer rect (granica etykiety, page_size) - zawsze widoczna, szara cienka
-    2. Inner rect (strefa robocza, text_area) - kolor zalezny od overflow:
-       pomaranczowy gdy tekst sie miesci, czerwony gdy wystaje
-    3. overflow="visible" na root <svg> + style - tekst poza viewbox jest widoczny
-       (NIE jest obcinany), zeby grafik widzial co wystaje
+    1. Outer rect (krawędź etykiety) - czarny, grubszy, kontrastowy.
+    2. Inner rect (obszar tekstu) - niebieski OK / czerwony przy overflow.
+    3. overflow="visible" na root <svg> - tekst poza viewbox jest widoczny
+       (NIE jest obcinany), żeby grafik widział co wystaje.
     """
     text_area_w, text_area_h = params["text_area_size"]
     page_w, page_h = params["page_size"]
     is_feasible = params.get("is_feasible", True)
 
-    # Stroke width w mm, proporcjonalny do szerokosci strony (~0.1% szer.)
-    stroke_w = max(0.15, page_w * 0.001)
+    # Stroke width w mm; krawedz etykiety grubsza i bardziej widoczna od strefy roboczej
+    page_stroke = max(0.30, page_w * 0.0025)
+    workspace_stroke = max(0.18, page_w * 0.0012)
 
     inner_color = WORKSPACE_OUTLINE_COLOR_OK if is_feasible else WORKSPACE_OUTLINE_COLOR_OVERFLOW
-    inner_dash = "1,0.6" if is_feasible else "2,1"
+    inner_dash = "1.4,0.8" if is_feasible else "2,1"
 
     page_rect = (
         f'<rect x="0" y="0" '
         f'width="{page_w}" height="{page_h}" '
         f'fill="none" stroke="{PAGE_OUTLINE_COLOR}" '
-        f'stroke-width="{stroke_w * 0.7}" '
-        f'opacity="0.6"/>'
+        f'stroke-width="{page_stroke}" '
+        f'opacity="0.95"/>'
     )
     workspace_rect = (
         f'<rect x="{TEXT_AREA_X}" y="{TEXT_AREA_Y}" '
         f'width="{text_area_w}" height="{text_area_h}" '
         f'fill="none" stroke="{inner_color}" '
-        f'stroke-width="{stroke_w}" stroke-dasharray="{inner_dash}" '
+        f'stroke-width="{workspace_stroke}" stroke-dasharray="{inner_dash}" '
         f'opacity="0.85"/>'
     )
 
     inject = f"{page_rect}\n{workspace_rect}"
 
-    # Wstrzyknij rects po </title>
     if "</title>" in svg_string:
         svg_string = svg_string.replace("</title>", f"</title>\n{inject}", 1)
     else:
         svg_string = re.sub(r'(<svg[^>]*>)', r'\1\n' + inject, svg_string, count=1)
 
-    # overflow="visible" na root <svg> - tekst poza page_size NIE jest obcinany,
-    # grafik widzi co dokladnie wystaje i moze poprawic settings.
     svg_string = re.sub(
         r'<svg(?![^>]*\soverflow=)([^>]*)>',
         r'<svg\1 overflow="visible">',
@@ -348,4 +369,5 @@ def _build_config_from_params(params: dict):
         marker_style=params["marker_style"],
         marker_color=params["marker_color"],
         inter_block_gap_mm=params.get("inter_block_gap_mm"),
+        justify_full=params.get("justify_full", True),
     )

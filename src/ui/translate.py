@@ -29,22 +29,21 @@ from src.logic.prompt_template import (
     build_prompt,
 )
 
-MODE_TRANSLATE = "Przetlumacz z PL/EN"
-MODE_FORMAT = "Mam juz 15 tlumaczen, sformatuj"
+MODE_TRANSLATE = "Przetłumacz z PL/EN"
+MODE_FORMAT = "Mam już 15 tłumaczeń, sformatuj"
 
 
 def render_translate_section() -> dict[str, str]:
     """Render sekcji tlumaczenia. Zwraca {lang_code: text} po edycji."""
 
-    # Sekcja 0: wybor trybu
     mode = st.radio(
         "Tryb pracy",
         options=[MODE_TRANSLATE, MODE_FORMAT],
         key="translate_mode",
         horizontal=True,
         help=(
-            "Tryb 1: wpisujesz 1 tekst, AI tlumaczy na 15 jezykow. "
-            "Tryb 2: masz juz 15 tlumaczen (od kontrahenta, z Excela...), "
+            "Tryb 1: wpisujesz 1 tekst, AI tłumaczy na 15 języków. "
+            "Tryb 2: masz już 15 tłumaczeń (od kontrahenta, z Excela...), "
             "AI tylko normalizuje format `KOD === tekst`."
         ),
     )
@@ -52,21 +51,20 @@ def render_translate_section() -> dict[str, str]:
     prompt: str | None = None
 
     if mode == MODE_TRANSLATE:
-        # Sekcja 1: tekst zrodlowy + jezyk
-        st.subheader("1. Tekst zrodlowy")
+        st.subheader("1. Tekst źródłowy")
         col1, col2 = st.columns([4, 1])
         with col1:
             source_text = st.text_area(
-                "Wpisz tekst do przetlumaczenia",
-                placeholder="Np. 'Single-use, oxygen-activated heat pack. For transporting animals...'",
+                "Wpisz tekst do przetłumaczenia",
+                placeholder="Wpisz tutaj tekst, który ma się znaleźć na etykiecie",
                 height=100,
                 key="source_text",
                 label_visibility="collapsed",
             )
-            st.button("Zatwierdz tekst", key="submit_source", help="Lub Ctrl+Enter w polu wyzej")
+            st.button("Zatwierdź tekst", key="submit_source", help="lub Ctrl+Enter w polu wyżej")
         with col2:
             source_lang = st.selectbox(
-                "Jezyk zrodlowy",
+                "Język źródłowy",
                 options=["EN", "PL"],
                 index=0,
                 key="source_lang",
@@ -74,29 +72,27 @@ def render_translate_section() -> dict[str, str]:
         if source_text.strip():
             prompt = build_prompt(source_text, source_lang)
     else:
-        # Sekcja 1 (format): wszystkie 15 tlumaczen w jednym polu
-        st.subheader("1. Wklej 15 tlumaczen")
+        st.subheader("1. Wklej 15 tłumaczeń")
         st.caption(
-            "Dowolny format - lista, CSV, Excel paste, plain text z nagolowkami "
-            "(np. 'Polski: ...', 'English: ...'). AI dopasuje kody jezykow i sformatuje."
+            "Dowolny format — lista, CSV, Excel paste, plain text z nagłówkami "
+            "(np. 'Polski: ...', 'English: ...'). AI dopasuje kody języków i sformatuje."
         )
         raw_translations = st.text_area(
-            "Wklej tlumaczenia w jakimkolwiek formacie",
-            placeholder="Polski: Jednorazowy ogrzewacz...\nEnglish: Single-use heat pack...\n...",
+            "Wklej tłumaczenia w jakimkolwiek formacie",
+            placeholder="Polski: ...\nEnglish: ...\n...",
             height=200,
             key="raw_translations",
             label_visibility="collapsed",
         )
-        st.button("Zatwierdz tlumaczenia", key="submit_raw", help="Lub Ctrl+Enter w polu wyzej")
+        st.button("Zatwierdź tłumaczenia", key="submit_raw", help="lub Ctrl+Enter w polu wyżej")
         if raw_translations.strip():
             prompt = build_format_prompt(raw_translations)
 
-    # Sekcja 2: prompt do AI
     st.subheader("2. Skopiuj prompt do AI")
     if prompt is None:
-        st.info("Wpisz tekst powyzej, zeby wygenerowac prompt.")
+        st.info("Wpisz tekst powyżej, żeby wygenerować prompt.")
     else:
-        with st.expander("Podglad promptu (15 jezykow + zasady formatowania)", expanded=False):
+        with st.expander("Podgląd promptu (15 języków + zasady formatowania)", expanded=False):
             st.code(prompt, language="markdown")
 
         col_a, col_b = st.columns([1, 3])
@@ -105,27 +101,26 @@ def render_translate_section() -> dict[str, str]:
                 if PYPERCLIP_OK:
                     try:
                         pyperclip.copy(prompt)
-                        st.success("Skopiowano - wklej do ChatGPT/Claude.ai/Gemini.")
+                        st.success("Skopiowano — wklej do ChatGPT/Claude.ai/Gemini.")
                     except Exception as e:
-                        st.error(f"Blad clipboard: {e}. Skopiuj recznie z podgladu wyzej.")
+                        st.error(f"Błąd schowka: {e}. Skopiuj ręcznie z podglądu wyżej.")
                 else:
-                    st.warning("pyperclip nie zainstalowany - skopiuj recznie z podgladu.")
+                    st.warning("pyperclip nie zainstalowany — skopiuj ręcznie z podglądu.")
         with col_b:
             st.caption(
                 "Wklej prompt do dowolnego AI (ChatGPT, Claude.ai, Gemini, "
                 "Mistral...). AI odpowie 15 liniami w formacie `KOD === tekst`."
             )
 
-    # Sekcja 3: wklej odpowiedz AI
-    st.subheader("3. Wklej odpowiedz AI")
+    st.subheader("3. Wklej odpowiedź AI")
     ai_response = st.text_area(
-        "Odpowiedz AI - 15 jezykow w formacie 'KOD === tekst'",
+        "Odpowiedź AI — 15 języków w formacie 'KOD === tekst'",
         placeholder="EN === ...\nPL === ...\nUK === ...\n(... 15 linii)",
         height=200,
         key="ai_response",
         label_visibility="collapsed",
     )
-    st.button("Zatwierdz odpowiedz AI", key="submit_response", help="Lub Ctrl+Enter w polu wyzej")
+    st.button("Zatwierdź odpowiedź AI", key="submit_response", help="lub Ctrl+Enter w polu wyżej")
 
     if not ai_response.strip():
         return {}
@@ -133,25 +128,23 @@ def render_translate_section() -> dict[str, str]:
     parsed = parse_translations(ai_response)
     missing, extra = validate_translations(parsed, LANGUAGES)
 
-    # Status parsowania
     cols = st.columns(3)
-    cols[0].metric("Sparsowano jezykow", f"{len(parsed)}/{len(LANGUAGES)}")
+    cols[0].metric("Sparsowano języków", f"{len(parsed)}/{len(LANGUAGES)}")
     cols[1].metric("Brakuje", len(missing))
     cols[2].metric("Nadmiarowe (zignorowane)", len(extra))
 
     if missing:
-        st.warning(f"Brak {len(missing)} jezykow: **{', '.join(missing)}**. Mozesz je dopisac recznie nizej.")
+        st.warning(f"Brak {len(missing)} języków: **{', '.join(missing)}**. Możesz je dopisać ręcznie niżej.")
     if extra:
-        st.info(f"Nieoczekiwane kody (pominiete): {', '.join(extra)}")
+        st.info(f"Nieoczekiwane kody (pominięte): {', '.join(extra)}")
     if not parsed:
         st.error(
-            "Parser nie znalazl zadnego jezyka. Format powinien byc `KOD === tekst` "
-            "(np. `EN === Hello world`). Sprawdz czy AI uzylo poprawnego separatora."
+            "Parser nie znalazł żadnego języka. Format powinien być `KOD === tekst` "
+            "(np. `EN === Hello world`). Sprawdź czy AI użyło poprawnego separatora."
         )
         return {}
 
-    # Sekcja 4: edytowalne textarea per jezyk
-    st.subheader(f"4. Edytuj jezyki ({len(parsed)} sparsowane, mozesz poprawic dowolny)")
+    st.subheader(f"4. Edytuj języki ({len(parsed)} sparsowane, możesz poprawić dowolny)")
 
     edited: dict[str, str] = {}
     cols = st.columns(3)
@@ -169,11 +162,10 @@ def render_translate_section() -> dict[str, str]:
                 key=f"lang_text_{code}",
             )
 
-    # Status koncowy - ile jezykow wypelnionych po edycji
     filled = sum(1 for t in edited.values() if t.strip())
     if filled == len(LANGUAGES):
-        st.success(f"Wszystkie {filled} jezykow wypelnione - mozesz przejsc do generacji etykiety.")
+        st.success(f"Wszystkie {filled} języków wypełnione — możesz przejść do generacji etykiety.")
     else:
-        st.warning(f"Wypelnione {filled}/{len(LANGUAGES)} jezykow - uzupelnij brakujace przed generacja.")
+        st.warning(f"Wypełnione {filled}/{len(LANGUAGES)} języków — uzupełnij brakujące przed generacją.")
 
     return {code: text.strip() for code, text in edited.items() if text.strip()}

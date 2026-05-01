@@ -1,6 +1,6 @@
 # MEMORY.md — etykiety-app
 
-Aktualny stan prac. Ostatnia aktualizacja: 2026-04-30 (sesja domowy PC, wieczór→noc)
+Aktualny stan prac. Ostatnia aktualizacja: 2026-05-01 (sesja domowy PC, rano)
 
 ## Co działa (E2E)
 
@@ -15,28 +15,30 @@ Aktualny stan prac. Ostatnia aktualizacja: 2026-04-30 (sesja domowy PC, wieczór
 - **32/32 testów PASS** (parser 18 + tuner 11 + format prompt 3)
 - **Repo**: https://github.com/Pietraseq/etykiety-app (private), submodule etykiety-svg
 
-## W toku (sesja 2026-04-30 wieczór, domowy PC)
+## Zmiany sesji 2026-05-01 rano (domowy PC)
 
-- **Codex w tle (`bkel16rtz`)**: re-generuje 4 pliki logo (banner/square × light/dark) — fix paddingu w bloku negatywowym "Label" (literki wystawały poza krawędzie). Backgroundy zostają. Brief w `_codex-brief-logo-fix.md` (gitignored).
+- **Strefa robocza w preview**: pomarańczowa → niebieska (`#1976D2`). Czerwona (`#D32F2F`) zostaje przy overflow.
+- **Krawędź etykiety w preview**: jasna szara → czarna (`#111111`), grubsza (`stroke = page_w * 0.0025`).
+- **Pin szerokości obszaru tekstu do szerokości etykiety**: checkbox + margines (mm). Gdy włączony, slider „Szerokość obszaru tekstu" ukryty, wartość liczona automatycznie z `page_w - 2 × margin` i wyświetlana jako caption.
+- **Justify toggle (UI + silnik)**: radio „Wyjustowany na całą szerokość" / „Wyrównany do lewej". W silniku `etykiety-svg`: nowe pole `LabelConfig.justify_full: bool = True`, parametr `wrap_and_justify(..., justify_full)`. Gdy False — wszystkie linie mają `word_spacing_mm = 0`.
+- **Preferowana liczba wierszy**: wyciągnięta z `st.columns(3)` do osobnej sekcji `#### Preferowana liczba wierszy w bloku` z dużą kolumną slidera + boczną etykietą `N wiersz/wierszy` w dużej czcionce (1.6rem). Wcześniej była zwykłym `number_input` wciśniętym obok marker_color.
+- **Hinty bez przykładów w nawiasach**: usunięto „(jak D609)", „(jak HappSnack)", „Np. 'Single-use, oxygen-activated heat pack...'" — placeholdery generyczne zamiast specyficznych przykładów.
+- **„by Pietras" — REWIZJA decyzji**: Pietras chce żeby BYŁA atrybucja widoczna (zaprzeczył poprzedniemu odrzuceniu, „wcześniej go nie widziałem a chcę to"). Footer rozbudowany: PNG `branding/by-pietras-dark.png` w prawym dolnym rogu, opacity 0.92, height 36px (było 22px), tło z blur, padding, border-radius. Pliki branding/by-pietras-* ZOSTAJĄ.
+- **Polskie znaki w UI**: cały user-facing layer (preview.py, settings.py, translate.py) zamieniony z ASCII-only („Wpisz tekst zrodlowy") na poprawną polszczyznę z diakrytykami („Wpisz tekst źródłowy"). Docstringi i prompt do AI bez zmian (dev-facing / EN).
+- **Polish error handling w app.py**: wrap głównej sekcji w try/except z `st.exception(e)` i przyjazną wiadomością. Komunikat błędu submodule rozbudowany z instrukcją naprawy.
+- **README.md**: pełen walkthrough grafika 12 kroków, sekcja „Funkcje zaawansowane" (pin/zoom/ramki/feasibility), tabela rozwiązywania problemów. Wcześniej był skrót.
+- **Submodule etykiety-svg bumped do `6ad5ba7`**: dodano `justify_full` toggle, push na main.
+
+## Aktualne problemy
+
+- **Codex sandbox bug na Windows**: `--sandbox workspace-write` powoduje `CreateProcessAsUserW failed: 1920` przy każdej próbie shell call. Workaround: `--sandbox danger-full-access`. To prawdopodobnie zabiło `bnmn0w53a` w poprzedniej sesji (foldery `assets/` były puste mimo wygenerowania obrazów do `~/.codex/generated_images/`). Powtórzone dziś (2026-05-01) — `codex exec` pada na `Get-Job`.
+- **Streamlit auto theme detection nie działa**: w 1.57.0 `st.context.theme.type` nie odpowiada na user-toggle System/Light/Dark, `theme.base` jest config-time. Dlatego ręczny toggle Dzień/Noc w headerze (default Dzień).
 
 ## Do zrobienia (next session)
 
-### UI iteracja (uwagi Pietrasa, wieczór 2026-04-30)
-
-- [ ] **Strefa robocza w preview**: zostawić widoczną, ale zmienić kolor ramki (obecnie pomarańczowa). Zachowanie: tekst wystający poza strefę nadal widoczny — ramka jako wskaźnik, nie clip.
-- [ ] **"by Pietras"**: znaleźć gdzie jeszcze jest w UI/wygenerowanych plikach i usunąć (atrybucja już raz odrzucona — sprawdzić logo, footer, metadata SVG).
-- [ ] **Preferowana liczba wierszy**: ładniej sformatowany input (lepszy label/spacing/grupowanie z auto-tune).
-- [ ] **Obramówka etykiety w preview**: bardziej widoczna (grubsza/kontrastowa).
-- [ ] **Justify toggle**: dwie opcje formatowania tekstu — (a) wyjustowany na całą szerokość, (b) aktualne formatowanie. Radio/checkbox w settings.
-- [ ] **Pin szerokość etykiety ↔ szerokość tekstu**: opcja sprzęgnięcia tych dwóch parametrów. Gdy włączone, zmiana jednego automatycznie aktualizuje drugi z zachowaniem **marginesu** (jednostka: % albo mm — wybór).
-- [ ] **Usunąć przykłady w nawiasach z UI hints**: np. `(jak d60900)` przy kolorze, `(jak HappSnack)` przy nazwie produktu. Same nawiasy z przykładami-wzorcami won.
-
-### Wcześniejsze TODO
-
-- [ ] Review wizualny po Codex re-run loga → commit jeśli OK
-- [ ] **Faza E**: README dla grafika ze screenshotami workflow, polish error handling, decyzja o hostingu (lokalnie vs Streamlit Cloud)
-- [ ] Test grafików E2E na realnej etykiecie nowego produktu
-- [ ] Drugi PC (praca): `git pull origin main` + `git submodule update --init --recursive` żeby zsynchronizować po zmianach z domowego PC
+- [ ] Test grafików E2E na realnej etykiecie nowego produktu — to musi zrobić Pietras na produkcji
+- [ ] Decyzja o hostingu: lokalnie vs Streamlit Cloud
+- [ ] Drugi PC (praca): `git pull origin main` + `git submodule update --init --recursive` żeby zsynchronizować
 
 ## Aktualne problemy
 
@@ -67,6 +69,7 @@ Aktualny stan prac. Ostatnia aktualizacja: 2026-04-30 (sesja domowy PC, wieczór
 - **2026-04-30 wieczór (dom)**: Backgrounds day/night = dwa osobne obrazy (toggle), nie split na jednym. Aplikacja zmienia tło zależnie od wybranego trybu UI.
 - **2026-04-30 wieczór (dom)**: Codex bg job nr 2 (`bcal0ujvm`) z `--sandbox workspace-write` zacinał się na `CreateProcessAsUserW failed: 1920` — Windows sandbox bug. Restart z `--sandbox danger-full-access` (`b4n9hvz0o`) zadziałał: 6 plików dostarczonych, walidacja OK.
 - **2026-04-30 wieczór (dom)**: "by Pietras" attribution **odrzucone** — Pietras nie chce podpisu na grafikach.
+- **2026-05-01 rano (dom)**: REWIZJA — "by Pietras" w UI/footer **wraca**. Pietras: "wcześniej go nie widziałem a chcę to". Footer wyższy (36px, było 22px), opacity 0.92 (było 0.55), tło z blur. Pliki `branding/by-pietras-*` zostają. Atrybucja jest TYLKO w UI (overlay), NIE jest wstrzykiwana do generowanego SVG.
 - **2026-04-30 wieczór (dom)**: Tryb format gotowych tłumaczeń (drugi obok translate). Pietras: czasem ma już 15 tłumaczeń sprawdzone, AI tylko formatuje.
 - **2026-04-30 wieczór (dom)**: Layout "15" (jedna kolumna, wszystkie języki pod sobą) dodany do LAYOUT_CHOICES.
 - **2026-04-30 wieczór (dom)**: Guzik "Pełen ekran" w preview usunięty (nie działał, niepotrzebny).

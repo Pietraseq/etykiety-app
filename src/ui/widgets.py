@@ -43,7 +43,7 @@ def dual_input(
         st.session_state[sl_key] = st.session_state[ni_key]
 
     label_with_help = label + (f" — _{help_text}_" if help_text else "")
-    st.markdown(label_with_help)
+    st.markdown(label_with_help, unsafe_allow_html=False)
 
     c1, c2 = st.columns([3, 1])
     c1.slider(

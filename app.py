@@ -1,8 +1,8 @@
 """Streamlit entry point dla etykiety-app.
 
 Faza A: scaffold + sanity check importu silnika etykiety-svg.
-Faza B: prompt + parser + UI tlumaczenia (15 textarea).
-Kolejne fazy: settings, auto-tune, preview, download.
+Faza B: prompt + parser + UI tłumaczenia (15 textarea).
+Kolejne fazy: settings, auto-tune, podgląd, download.
 """
 
 from __future__ import annotations
@@ -43,19 +43,32 @@ apply_background()
 render_header()
 
 if not SVG_ENGINE_OK:
-    st.error(f"Silnik etykiety-svg nie zaladowany: {SVG_ENGINE_ERROR}")
+    st.error(
+        f"Silnik renderowania SVG (`etykiety-svg`) nie został załadowany.\n\n"
+        f"**Szczegóły błędu:** `{SVG_ENGINE_ERROR}`"
+    )
+    st.markdown(
+        "Najczęstsza przyczyna: submodule nie został zainicjalizowany po klonowaniu repo. "
+        "Wykonaj poniższą komendę w katalogu projektu:"
+    )
     st.code("git submodule update --init --recursive", language="bash")
     st.stop()
 
-# Sekcje 1-3: tlumaczenie przez prompt do AI -> 15 textarea
-translations = render_translate_section()
+try:
+    translations = render_translate_section()
 
-# Sekcja 5: BASIC settings (layout, marker, preferred_lines)
-st.markdown("---")
-basic_params = render_basic_settings(translations)
+    st.markdown("---")
+    basic_params = render_basic_settings(translations)
 
-# Sekcja 6: zaawansowane + live preview side-by-side
-st.markdown("---")
-render_combined_section(basic_params)
+    st.markdown("---")
+    render_combined_section(basic_params)
+except Exception as e:
+    st.error(
+        "**Wystąpił nieoczekiwany błąd aplikacji.**\n\n"
+        f"Szczegóły: `{type(e).__name__}: {e}`\n\n"
+        "Spróbuj odświeżyć stronę. Jeśli błąd się powtarza — zgłoś go z treścią powyżej."
+    )
+    st.exception(e)
+    st.stop()
 
 render_footer()
