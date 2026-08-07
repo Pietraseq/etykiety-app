@@ -80,6 +80,7 @@ Aktualny stan prac. Ostatnia aktualizacja: 2026-05-01 (sesja domowy PC, rano)
 - **2026-04-30 wieczór (dom)**: Guzik "Pełen ekran" w preview usunięty (nie działał, niepotrzebny).
 - **2026-04-30 wieczór (dom)**: Day mode czytelność: overlay 0.92 + wymuszony ciemny tekst (`color: #1f1f1f !important`). Auto-detect theme zastąpiony własnym radio Dzień/Noc.
 - **2026-04-30 wieczór (dom)**: Codex bg job nr 3 (`bkel16rtz`) re-run dla 4 plików logo — fix paddingu "Label" w bloku negatywowym (litery wystawały).
+- **2026-08-07 (biuro)**: Projekt pauzowany świadomie (Pietras nie wraca w najbliższym czasie) — zero automatyzacji w tle do zatrzymania: brak Task Scheduler, brak żywego procesu Streamlit, jedyny "żywy" element to Streamlit Cloud z auto-deployem TYLKO na `git push` (nie na harmonogramie). 7 osieroconych plików z sesji 30.04 (zastąpionych kompletem brandingu z 01.06, żaden nieużywany w kodzie: `background-day/night.local.webp`, `logo-large/small-dark/light.png`, `qa_logo_contact_sheet.png`) przeniesione `assets/ → _brand-ref/` — kontynuacja konwencji z wpisu wyżej (`_brand-ref/happet-logo.png`, gitignored). **Nie do gita, nie do usuwania** — lokalna referencja/archiwum wariantów graficznych.
 
 ## Cross-PC sync
 
