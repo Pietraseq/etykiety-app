@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-# Dodaj submodule do path (jak w app.py)
-SUBMODULE_SRC = Path(__file__).resolve().parents[1] / "etykiety_svg" / "src"
-if str(SUBMODULE_SRC) not in sys.path:
-    sys.path.insert(0, str(SUBMODULE_SRC))
+# Silnik vendor-owany w src/ na sys.path (jak ENGINE_SRC w app.py)
+ENGINE_SRC = Path(__file__).resolve().parents[1] / "src"
+if str(ENGINE_SRC) not in sys.path:
+    sys.path.insert(0, str(ENGINE_SRC))
 
 from src.logic.tuner import (
     build_column_split,
