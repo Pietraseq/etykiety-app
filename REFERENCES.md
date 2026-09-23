@@ -6,7 +6,6 @@ Techniczna referencja: Streamlit, format promptu dla AI, gotchas.
 
 - **Streamlit** — https://docs.streamlit.io/ — UI komponenty, session state, cache
 - **etykiety-svg** (osobne repo `C:\Projekty\etykiety-svg`, źródło vendor-owanej kopii w `src/label_generator/`) — tam `CLAUDE.md` + `REFERENCES.md`
-- **pyperclip** — https://pyperclip.readthedocs.io/ — clipboard read/write cross-platform
 - **lipis/flag-icons** — https://github.com/lipis/flag-icons — flagi SVG (już w `etykiety-svg/assets/flags`)
 
 ⚠️ Dokumentację zawsze weryfikować na żywo — Streamlit ma częste zmiany API.
@@ -81,10 +80,8 @@ def find_optimal_font(texts: dict[str, str], page_size, columns, preferred_lines
 
 - **Streamlit re-runs przy każdej zmianie inputu** — używaj `@st.cache_data` dla drogich obliczeń (auto-tune, parsowanie dużych odpowiedzi AI)
 - **session_state dla persystencji między re-runs** — np. parsowane języki przechowuj w `st.session_state['languages']`, inaczej rerun zresetuje formularz
-- **pyperclip na Linux** wymaga `xclip` lub `xsel` (Streamlit Cloud Linux) — sprawdzić przed deployem
 - **Silnik vendor-owany (od 2026-05-01, bez submodułu)**: poprawka silnika = zmiana w `src/label_generator/`; gdy dotyczy też CLI w repo `etykiety-svg` — ręczny sync w obie strony
 - **AI odpowiedzi w markdown**: ChatGPT lubi dodawać `**EN**` lub bullet listy. Parser musi tolerować typowe modele: gołe `EN === ...`, ale też `**EN** === ...` lub `- EN === ...`. Test różne modele zanim shipniemy.
-- **Polskie znaki w pyperclip** na Windows — generalnie OK, ale unicode może spaść do `?` jeśli encoding źle ustawiony. Test cyrylica i greka też.
 - **SVG embed w Streamlit**: `st.image(svg_bytes)` NIE działa dla SVG; użyj `st.components.v1.html(svg_string, height=...)` lub `streamlit-svg-renderer` (jeśli istnieje).
 
 ## Hosting opcje
