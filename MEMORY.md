@@ -85,7 +85,7 @@ Aktualny stan prac. Ostatnia aktualizacja: 2026-05-01 (sesja domowy PC, rano)
 ## Cross-PC sync
 
 - **Domowy PC**: `git pull` przy starcie, `streamlit run app.py` → http://localhost:8501
-- **Praca PC**: `git pull origin main` + `git submodule update --remote etykiety_svg` żeby zsynchronizować
+- **Praca PC**: `git pull origin main` (submodułu `etykiety_svg` nie ma od vendoringu 2026-05-01; stary klon usunięty 2026-09-23)
 - Wszystkie zmiany pushowane na main automatycznie po każdej zamkniętej zmianie.
 
 ## Streamlit chodzi w tle

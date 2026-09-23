@@ -64,4 +64,3 @@ py -3.13 -m pytest tests/
 - Nie hardkoduj API key DeepL/OpenAI - tłumaczenia robi GRAFIK przez wklejenie do swojego AI
 - Nie commituj wygenerowanych SVG (`output/` w gitignore)
 - Nie używaj zewnętrznych API tłumaczeń bez zgody Pietrasa (cost concerns)
-- `etykiety_svg/` (folder po starym submodule) jest w `.gitignore` - nie commituj. Aktywny silnik to `src/label_generator/`.
