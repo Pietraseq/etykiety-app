@@ -50,7 +50,7 @@ Silnik renderowania SVG (`label_generator`) żyje w tym samym repo (`src/label_g
 | Brakuje przycisku „Skopiuj prompt" | Wpisz tekst źródłowy i kliknij „Zatwierdź tekst" (lub Ctrl+Enter) |
 | Parser nie znalazł żadnego języka | Sprawdź czy AI użyło separatora `===` (a nie `:` lub `-`). W razie potrzeby popraw odpowiedź ręcznie. |
 | „Etykieta niemożliwa" | Skróć tekst, zwiększ obszar tekstu, zwiększ preferowaną liczbę wierszy lub wybierz węższy layout |
-| Schowek nie działa | Skopiuj prompt ręcznie z podglądu (rozwiń ekspander) |
+| Ikona kopiowania nie działa | Zaznacz tekst w polu z promptem (sekcja 2) i skopiuj ręcznie (Ctrl+C) |
 
 ## Dokumentacja deweloperska
 
@@ -65,7 +65,7 @@ Silnik renderowania SVG (`label_generator`) żyje w tym samym repo (`src/label_g
 
 - Python 3.13 + venv
 - Streamlit (UI w przeglądarce)
-- pyperclip (schowek)
+- Kopiowanie promptu: natywna ikona „Copy to clipboard" w `st.code()` (bez dodatkowych bibliotek)
 - label_generator (silnik SVG, vendor-owany w `src/label_generator/`)
 
 ## Dane
