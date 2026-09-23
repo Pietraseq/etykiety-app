@@ -11,7 +11,7 @@ UI dla grafika do generowania wielojęzycznych etykiet Happet. Wpisuje tekst PL/
 - Python 3.13 + venv lokalny w `.venv/`
 - **Streamlit** (UI w przeglądarce, lokalnie albo Streamlit Cloud)
 - `label_generator` — silnik SVG, vendor-owany (źródłowo z `etykiety-svg`, kopia w `src/label_generator/`)
-- `pyperclip` (clipboard) - copy promptu do schowka (lokalnie; na chmurze fallback do ręcznego copy z ekspandera)
+- Copy promptu do schowka: natywny przycisk kopiowania w `st.code()` (Streamlit) — `pyperclip` i JS-button usunięte 2026-05-01 (nie działały na Streamlit Cloud)
 - `pyyaml`, `pydantic`, `fontTools`, `lxml`, `pyphen`, `pdfplumber`
 - Brak płatnych API - tłumaczenia przez prompt do dowolnego AI (ChatGPT, Claude.ai, Gemini), grafik wkleja odpowiedź
 
